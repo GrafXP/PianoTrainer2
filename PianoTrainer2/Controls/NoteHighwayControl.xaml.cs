@@ -17,10 +17,10 @@ namespace PianoTrainer2.Controls
 
     public class FallingNote
     {
-        public SongNote Source   { get; init; } = null!;
-        public Rectangle Visual  { get; init; } = null!;
-        public TextBlock Label   { get; init; } = null!;
-        public HitState  State   { get; set; }  = HitState.Active;
+        public SongNote Source    { get; init; } = null!;
+        public Rectangle Visual   { get; init; } = null!;
+        public TextBlock Label    { get; init; } = null!;
+        public HitState  State    { get; set; }  = HitState.Active;
         public double    KeyDownAt { get; set; } = -1;
         public bool      KeyIsDown { get; set; }
     }
@@ -29,30 +29,35 @@ namespace PianoTrainer2.Controls
     {
         // ── tunables ──────────────────────────────────────────────────────────
         public TrainingMode Mode        { get; set; } = TrainingMode.Continuous;
-        /// <summary>How many seconds it takes a note to fall from top to the hit zone.</summary>
-        public double FallSeconds { get; set; } = 5.0;
+        public double       FallSeconds { get; set; } = 5.0;
         private double _pixelsPerMs = 0.3;
-        private const int    TickMs       = 16;
+        private const int    TickMs        = 16;
         private const double HitZoneHeight = 8;
         private const double HitWindowMs   = 200;
         private const double FreezeGraceMs = 4000;
+        // Keys are "pending" (dim hint on keyboard) when within this many ms of hitting
+        private const double PendingWindowMs = 2000;
         private double LookaheadMs => ActualHeight / _pixelsPerMs;
 
         // ── events ────────────────────────────────────────────────────────────
-        public event Action<int>? NoteHit;
-        public event Action<int>? NoteMissed;
+        public event Action<int>?       NoteHit;
+        public event Action<int>?       NoteMissed;
+        /// Fired each tick with which notes are approaching (for keyboard hint)
+        public event Action<bool[]>?    PendingKeysChanged;
 
         // ── private state ─────────────────────────────────────────────────────
-        private Song?           _song;
+        private Song?                   _song;
         private readonly List<FallingNote> _falling = new();
-        private int             _nextNoteIndex;
-        private double          _playbackMs;     // song-time cursor in milliseconds
-        private bool            _frozen;
-        private readonly Stopwatch _clock = new();
-        private double          _clockOffsetMs;  // _playbackMs when clock was last started
-
+        private int                     _nextNoteIndex;
+        private double                  _playbackMs;
+        private bool                    _frozen;
+        private readonly Stopwatch      _clock = new();
+        private double                  _clockOffsetMs;
         private readonly DispatcherTimer _timer;
-        private Rectangle? _hitZone;
+
+        private Rectangle?              _hitZone;
+        private readonly List<Line>     _rails = new();
+        private bool[]                  _lastPending = new bool[128];
 
         public NoteHighwayControl()
         {
@@ -61,9 +66,9 @@ namespace PianoTrainer2.Controls
             {
                 Interval = TimeSpan.FromMilliseconds(TickMs)
             };
-            _timer.Tick += OnTick;
-            Loaded      += (_, _) => RedrawHitZone();
-            SizeChanged += (_, _) => RedrawHitZone();
+            _timer.Tick  += OnTick;
+            Loaded       += (_, _) => { BuildRails(); RedrawHitZone(); };
+            SizeChanged  += (_, _) => { BuildRails(); RedrawHitZone(); };
         }
 
         // ── public API ────────────────────────────────────────────────────────
@@ -72,15 +77,17 @@ namespace PianoTrainer2.Controls
         public void Start()
         {
             if (_song == null) return;
-
-            double h = ActualHeight > 10 ? ActualHeight : 600;
-            _pixelsPerMs = h / (FallSeconds * 1000.0);
+            double h      = ActualHeight > 10 ? ActualHeight : 600;
+            _pixelsPerMs  = h / (FallSeconds * 1000.0);
 
             _falling.Clear();
             HighwayCanvas.Children.Clear();
+            _rails.Clear();
+            BuildRails();
             RedrawHitZone();
+
             _nextNoteIndex = 0;
-            _playbackMs    = -(FallSeconds * 1000.0); // start negative so first notes spawn at top
+            _playbackMs    = -(FallSeconds * 1000.0);
             _clockOffsetMs = _playbackMs;
             _frozen        = false;
             _clock.Restart();
@@ -93,8 +100,12 @@ namespace PianoTrainer2.Controls
             _clock.Stop();
             HighwayCanvas.Children.Clear();
             _falling.Clear();
+            _rails.Clear();
             _hitZone = null;
+            BuildRails();
             RedrawHitZone();
+            // Clear pending hints
+            PendingKeysChanged?.Invoke(new bool[128]);
         }
 
         // ── MIDI forwarding ───────────────────────────────────────────────────
@@ -104,11 +115,11 @@ namespace PianoTrainer2.Controls
             {
                 if (fn.State == HitState.Frozen)
                 {
-                    fn.State     = HitState.Hit;
-                    fn.KeyDownAt = _playbackMs;
-                    fn.KeyIsDown = true;
+                    fn.State      = HitState.Hit;
+                    fn.KeyDownAt  = _playbackMs;
+                    fn.KeyIsDown  = true;
                     _frozen = _falling.Any(f => f.State == HitState.Frozen);
-                    if (!_frozen) _clock.Restart(); // resume
+                    if (!_frozen) { _clockOffsetMs = _playbackMs; _clock.Restart(); }
                     FlashNote(fn, true);
                     return;
                 }
@@ -117,9 +128,9 @@ namespace PianoTrainer2.Controls
                     double diff = Math.Abs(_playbackMs - fn.Source.StartMs);
                     if (diff <= HitWindowMs)
                     {
-                        fn.State     = HitState.Hit;
-                        fn.KeyDownAt = _playbackMs;
-                        fn.KeyIsDown = true;
+                        fn.State      = HitState.Hit;
+                        fn.KeyDownAt  = _playbackMs;
+                        fn.KeyIsDown  = true;
                         FlashNote(fn, true);
                         return;
                     }
@@ -132,7 +143,7 @@ namespace PianoTrainer2.Controls
             foreach (var fn in _falling.Where(f => f.Source.NoteNumber == noteNumber && f.KeyIsDown))
             {
                 fn.KeyIsDown = false;
-                double held = _playbackMs - fn.KeyDownAt;
+                double held  = _playbackMs - fn.KeyDownAt;
                 if (held >= fn.Source.DurationMs * 0.7)
                     NoteHit?.Invoke(noteNumber);
                 else
@@ -148,8 +159,6 @@ namespace PianoTrainer2.Controls
         private void OnTick(object? sender, EventArgs e)
         {
             if (_song == null) return;
-
-            // Advance song time from wall clock (only when not frozen)
             if (!_frozen)
                 _playbackMs = _clockOffsetMs + _clock.Elapsed.TotalMilliseconds;
 
@@ -157,9 +166,42 @@ namespace PianoTrainer2.Controls
             PositionNotes();
             CheckHitZone();
             RemoveExpired();
+            UpdatePendingKeys();
 
             if (!_frozen && _playbackMs > _song.TotalDurationMs + 3000 && _falling.Count == 0)
                 Stop();
+        }
+
+        // ── rails ─────────────────────────────────────────────────────────────
+        private void BuildRails()
+        {
+            foreach (var r in _rails) HighwayCanvas.Children.Remove(r);
+            _rails.Clear();
+
+            double h = ActualHeight > 0 ? ActualHeight : 600;
+
+            for (int n = PianoKeyboardLayout.FirstNote; n <= PianoKeyboardLayout.LastNote; n++)
+            {
+                bool isBlack = PianoKeyboardLayout.IsBlack(n);
+                double cx    = PianoKeyboardLayout.GetKeyXCenter(n);
+
+                // One thin vertical line per key, running full height
+                var line = new Line
+                {
+                    X1              = cx,
+                    Y1              = 0,
+                    X2              = cx,
+                    Y2              = h,
+                    Stroke          = isBlack
+                                        ? new SolidColorBrush(Color.FromArgb(40, 150, 180, 255))
+                                        : new SolidColorBrush(Color.FromArgb(25, 200, 220, 255)),
+                    StrokeThickness = isBlack ? 1.0 : PianoKeyboardLayout.WhiteKeyWidth - 1,
+                    IsHitTestVisible = false
+                };
+                Canvas.SetZIndex(line, 1);
+                HighwayCanvas.Children.Add(line);
+                _rails.Add(line);
+            }
         }
 
         // ── spawn ─────────────────────────────────────────────────────────────
@@ -183,7 +225,7 @@ namespace PianoTrainer2.Controls
                     ? new SolidColorBrush(Color.FromRgb(60, 120, 200))
                     : new SolidColorBrush(Color.FromRgb(90, 170, 255));
 
-                var rect = new Rectangle { Width = w, Height = h, Fill = fill, RadiusX = 3, RadiusY = 3 };
+                var rect  = new Rectangle { Width = w, Height = h, Fill = fill, RadiusX = 3, RadiusY = 3 };
                 var label = new TextBlock
                 {
                     Text = MainViewModel.NoteName(note.NoteNumber),
@@ -201,22 +243,20 @@ namespace PianoTrainer2.Controls
             }
         }
 
-        // ── position: always computed from song time, no accumulation ─────────
+        // ── position ──────────────────────────────────────────────────────────
         private void PositionNotes()
         {
             double hitY = ActualHeight - HitZoneHeight;
             foreach (var fn in _falling)
             {
                 if (fn.State == HitState.Frozen) continue;
-
-                // top of note = position where its bottom will be at hitY when playbackMs == StartMs
                 double top = hitY - (fn.Source.StartMs - _playbackMs) * _pixelsPerMs - fn.Visual.Height;
                 Canvas.SetTop(fn.Visual, top);
                 Canvas.SetTop(fn.Label,  top + 2);
             }
         }
 
-        // ── hit zone check ────────────────────────────────────────────────────
+        // ── hit zone ──────────────────────────────────────────────────────────
         private void CheckHitZone()
         {
             double hitY = ActualHeight - HitZoneHeight;
@@ -225,20 +265,17 @@ namespace PianoTrainer2.Controls
             {
                 double top    = hitY - (fn.Source.StartMs - _playbackMs) * _pixelsPerMs - fn.Visual.Height;
                 double bottom = top + fn.Visual.Height;
-
-                if (bottom < hitY) continue; // hasn't arrived yet
+                if (bottom < hitY) continue;
 
                 if (Mode == TrainingMode.WaitForPress)
                 {
-                    fn.State   = HitState.Frozen;
-                    // Freeze clock: record current playback position as the new offset
+                    fn.State       = HitState.Frozen;
                     _clockOffsetMs = _playbackMs;
                     _clock.Restart();
-                    _frozen = true;
+                    _frozen        = true;
                 }
                 else
                 {
-                    // Continuous: mark miss once note has completely passed the hit zone
                     if (top > hitY + HitZoneHeight)
                     {
                         fn.State = HitState.Miss;
@@ -248,7 +285,6 @@ namespace PianoTrainer2.Controls
                 }
             }
 
-            // Freeze grace timeout
             if (Mode == TrainingMode.WaitForPress && _frozen)
             {
                 foreach (var fn in _falling.Where(f => f.State == HitState.Frozen).ToList())
@@ -265,15 +301,35 @@ namespace PianoTrainer2.Controls
             }
         }
 
+        // ── pending key hints ─────────────────────────────────────────────────
+        private void UpdatePendingKeys()
+        {
+            var pending = new bool[128];
+            foreach (var fn in _falling.Where(f => f.State is HitState.Active or HitState.Frozen))
+            {
+                double msUntilHit = fn.Source.StartMs - _playbackMs;
+                if (msUntilHit <= PendingWindowMs)
+                    pending[fn.Source.NoteNumber] = true;
+            }
+
+            // Only fire if changed
+            bool changed = false;
+            for (int i = 0; i < 128; i++)
+                if (pending[i] != _lastPending[i]) { changed = true; break; }
+
+            if (changed)
+            {
+                _lastPending = pending;
+                PendingKeysChanged?.Invoke(pending);
+            }
+        }
+
         // ── cleanup ───────────────────────────────────────────────────────────
         private void RemoveExpired()
         {
             var toRemove = _falling
                 .Where(f => f.State is HitState.Hit or HitState.Miss && !f.KeyIsDown)
-                .Where(f => {
-                    double top = Canvas.GetTop(f.Visual);
-                    return top > ActualHeight + 20 || f.Visual.Opacity < 0.05;
-                })
+                .Where(f => Canvas.GetTop(f.Visual) > ActualHeight + 20 || f.Visual.Opacity < 0.05)
                 .ToList();
 
             foreach (var fn in toRemove)
@@ -292,7 +348,7 @@ namespace PianoTrainer2.Controls
             {
                 Width  = PianoKeyboardLayout.TotalWidth,
                 Height = HitZoneHeight,
-                Fill   = new SolidColorBrush(Color.FromArgb(100, 255, 255, 255))
+                Fill   = new SolidColorBrush(Color.FromArgb(120, 255, 255, 255))
             };
             Canvas.SetLeft(_hitZone, 0);
             Canvas.SetTop (_hitZone, ActualHeight - HitZoneHeight);

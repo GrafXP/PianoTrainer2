@@ -25,11 +25,15 @@ namespace PianoTrainer2.ViewModels
     {
         // ── Highway reference (set after control is created) ──────────────
         private NoteHighwayControl? _highway;
+        private bool[] _pendingKeys = new bool[128];
+        public bool[] PendingKeys { get => _pendingKeys; private set { _pendingKeys = value; OnPropertyChanged(); } }
+
         public void AttachHighway(NoteHighwayControl hw)
         {
             _highway = hw;
-            _highway.NoteHit += _ => { Score += 10; Combo++; };
-            _highway.NoteMissed += _ => { Combo = 0; };
+            _highway.NoteHit           += _ => { Score += 10; Combo++; };
+            _highway.NoteMissed        += _ => { Combo = 0; };
+            _highway.PendingKeysChanged += keys => PendingKeys = keys;
         }
 
         // ── Built-in song list ────────────────────────────────────────────

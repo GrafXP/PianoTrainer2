@@ -63,7 +63,8 @@
         <ScrollViewer DockPanel.Dock="Bottom" HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Disabled" Height="130">
             <root:PianoKeyboard x:Name="TrainingKeyboard"
-                                ActiveKeys="{Binding DataContext.ActiveKeys, RelativeSource={RelativeSource AncestorType=UserControl}}"/>
+                                ActiveKeys="{Binding DataContext.ActiveKeys, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                PendingKeys="{Binding PendingKeys}"/>
         </ScrollViewer>
 
         <!-- Highway (fills remaining space) -->
