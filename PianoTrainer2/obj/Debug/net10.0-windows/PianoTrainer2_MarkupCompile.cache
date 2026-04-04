@@ -4,16 +4,16 @@
 winexe
 C#
 .cs
-I:\Data\Programming\windsurf\PianoTrainer2\PianoTrainer2\obj\Debug\net10.0-windows\
+C:\Users\Martin\Desktop\PianoTrainer2\PianoTrainer2\obj\Debug\net10.0-windows\
 PianoTrainer2
 none
 false
 TRACE;DEBUG;NET;NET10_0;NETCOREAPP;WINDOWS;WINDOWS7_0;NET5_0_OR_GREATER;NET6_0_OR_GREATER;NET7_0_OR_GREATER;NET8_0_OR_GREATER;NET9_0_OR_GREATER;NET10_0_OR_GREATER;NETCOREAPP3_0_OR_GREATER;NETCOREAPP3_1_OR_GREATER;WINDOWS7_0_OR_GREATER
-I:\Data\Programming\windsurf\PianoTrainer2\PianoTrainer2\App.xaml
+C:\Users\Martin\Desktop\PianoTrainer2\PianoTrainer2\App.xaml
 21910808711
 
 7-1977932324
-220960072069
+2201786663048
 MainWindow.xaml;PianoKeyboard.xaml;
 
 False

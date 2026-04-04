@@ -8,16 +8,25 @@ using System.Windows.Threading;
 
 namespace PianoTrainer2
 {
-    public class NoteLogEntry
+    public class NoteLogEntry : INotifyPropertyChanged
     {
         public string NoteName { get; set; } = "";
         public int Velocity { get; set; }
         public DateTime StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
+
+        private DateTime? _endTime;
+        public DateTime? EndTime
+        {
+            get => _endTime;
+            set { _endTime = value; PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Duration))); }
+        }
+
         public string Duration => EndTime.HasValue
             ? $"{(EndTime.Value - StartTime).TotalMilliseconds:F0} ms"
             : "...";
         public bool IsActive => !EndTime.HasValue;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
     }
 
     public class MainViewModel : INotifyPropertyChanged, IDisposable
@@ -28,7 +37,7 @@ namespace PianoTrainer2
 
         public ObservableCollection<string> Devices { get; } = new();
         public ObservableCollection<NoteLogEntry> EventLog { get; } = new();
-        public bool[] ActiveKeys { get; } = new bool[128];
+        public bool[] ActiveKeys { get; private set; } = new bool[128];
 
         private int _selectedDevice = -1;
         public int SelectedDevice
@@ -70,7 +79,9 @@ namespace PianoTrainer2
             _active[e.NoteNumber] = entry;
             EventLog.Insert(0, entry);
             if (EventLog.Count > 200) EventLog.RemoveAt(EventLog.Count - 1);
-            ActiveKeys[e.NoteNumber] = true;
+            var keysOn = (bool[])ActiveKeys.Clone();
+            keysOn[e.NoteNumber] = true;
+            ActiveKeys = keysOn;
             OnPropertyChanged(nameof(ActiveKeys));
         }
 
@@ -81,14 +92,15 @@ namespace PianoTrainer2
                 entry.EndTime = DateTime.Now;
                 _active.Remove(e.NoteNumber);
             }
-            ActiveKeys[e.NoteNumber] = false;
+            var keysOff = (bool[])ActiveKeys.Clone();
+            keysOff[e.NoteNumber] = false;
+            ActiveKeys = keysOff;
             OnPropertyChanged(nameof(ActiveKeys));
         }
 
         private void RefreshDurations()
         {
-            foreach (var entry in EventLog.Where(x => x.IsActive).ToList())
-                OnPropertyChanged(nameof(EventLog));
+            // No-op: NoteLogEntry.EndTime setter fires PropertyChanged(Duration) on note-off.
         }
 
         public static string NoteName(int n)
