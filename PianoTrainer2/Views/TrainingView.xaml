@@ -5,6 +5,9 @@
              xmlns:root="clr-namespace:PianoTrainer2"
              xmlns:vm="clr-namespace:PianoTrainer2.ViewModels"
              Background="#1e1e1e" Foreground="White">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+    </UserControl.Resources>
     <DockPanel>
         <!-- Toolbar -->
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,6,8,4">
