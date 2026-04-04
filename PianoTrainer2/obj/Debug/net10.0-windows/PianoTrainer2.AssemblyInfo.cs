@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PianoTrainer2")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fb5c0f09a030bfdb069a69d8f8bc9a22971ee156")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+e42de3ff456c8b958722c78d338d345656c8ca87")]
 [assembly: System.Reflection.AssemblyProductAttribute("PianoTrainer2")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PianoTrainer2")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
