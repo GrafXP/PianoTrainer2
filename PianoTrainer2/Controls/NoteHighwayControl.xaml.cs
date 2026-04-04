@@ -29,9 +29,8 @@ namespace PianoTrainer2.Controls
     {
         // ── tunables ──────────────────────────────────────────────────────────
         public TrainingMode Mode        { get; set; } = TrainingMode.Continuous;
-        /// <summary>How many beats fit on screen (height = BeatsVisible beats). Default 4 = one bar.</summary>
-        public double BeatsVisible { get; set; } = 4.0;
-        // Derived each Start(): screenHeight / (BeatsVisible * beatDurationMs)
+        /// <summary>How many seconds it takes a note to fall from top to the hit zone.</summary>
+        public double FallSeconds { get; set; } = 5.0;
         private double _pixelsPerMs = 0.3;
         private const int    TickMs       = 16;
         private const double HitZoneHeight = 8;
@@ -74,10 +73,8 @@ namespace PianoTrainer2.Controls
         {
             if (_song == null) return;
 
-            // 1 beat travels the full screen height → screenHeight = BeatsVisible * beatDurationMs * pixelsPerMs
-            double beatMs = _song.BeatDurationMs;
             double h = ActualHeight > 10 ? ActualHeight : 600;
-            _pixelsPerMs = h / (BeatsVisible * beatMs);
+            _pixelsPerMs = h / (FallSeconds * 1000.0);
 
             _falling.Clear();
             HighwayCanvas.Children.Clear();
