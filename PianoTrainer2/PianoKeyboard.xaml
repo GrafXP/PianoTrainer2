@@ -1,0 +1,5 @@
+<UserControl x:Class="PianoTrainer2.PianoKeyboard"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Canvas x:Name="KeyCanvas" Height="120" Background="#222"/>
+</UserControl>
