@@ -48,9 +48,8 @@ namespace PianoTrainer2.Controls
         private const double HitZoneHeight = 10;
         private const double HitWindowMs = 150;
         private const double FreezeGraceMs = 3000;
-
-        // Lookahead: spawn notes this many ms before they're due
-        private double LookaheadMs => ActualHeight / PixelsPerMs;
+        // How many ms ahead of the hit zone we spawn notes (fixed, independent of control height)
+        private const double LookaheadMs = 4000;
 
         public NoteHighwayControl()
         {
@@ -88,7 +87,7 @@ namespace PianoTrainer2.Controls
             HighwayCanvas.Children.Clear();
             BuildHitZone();
             _nextNoteIndex = 0;
-            _playbackMs = -LookaheadMs; // start early so first notes have time to fall
+            _playbackMs = 0; // playbackMs = song time in ms; notes spawn LookaheadMs before their StartMs
             _frozen = false;
             _playing = true;
             CompositionTarget.Rendering += OnRendering;
@@ -215,7 +214,11 @@ namespace PianoTrainer2.Controls
                     IsHitTestVisible = false
                 };
 
-                double startTop = -(note.StartMs - _playbackMs) * PixelsPerMs - h;
+                // msUntilHit > 0 means note hasn't reached hit zone yet
+                // note bottom should be at hitY when playbackMs == note.StartMs
+                double hitY = ActualHeight - HitZoneHeight;
+                double msUntilHit = note.StartMs - _playbackMs;
+                double startTop = hitY - msUntilHit * PixelsPerMs - h;
 
                 Canvas.SetLeft(rect, x);
                 Canvas.SetTop(rect, startTop);
@@ -239,10 +242,12 @@ namespace PianoTrainer2.Controls
 
         private void MoveNotes(double deltaMs)
         {
-            double move = _frozen ? 0 : deltaMs * PixelsPerMs;
+            double move = deltaMs * PixelsPerMs;
             foreach (var fn in _falling)
             {
                 if (fn.State == HitState.Frozen) continue;
+                // In WaitForPress mode the whole timeline is frozen; only non-frozen notes move
+                if (_frozen && fn.State == HitState.Active) continue;
                 fn.CanvasTop += move;
                 Canvas.SetTop(fn.Visual, fn.CanvasTop);
                 Canvas.SetTop(fn.Label, fn.CanvasTop + 2);
