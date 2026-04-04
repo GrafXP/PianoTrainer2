@@ -93,12 +93,14 @@ namespace PianoTrainer2.Services
 
             notes.Sort((a, b) => a.StartMs.CompareTo(b.StartMs));
             double total = notes.Count > 0 ? notes.Max(n => n.StartMs + n.DurationMs) : 0;
+            long firstTempo = tempoMap.Count > 0 ? tempoMap[0].uspb : 500_000;
 
             return new Song
             {
                 Title = string.IsNullOrEmpty(title) ? System.IO.Path.GetFileNameWithoutExtension(filePath) : title,
                 Notes = notes,
-                TotalDurationMs = total
+                TotalDurationMs = total,
+                InitialUsPerBeat = firstTempo
             };
         }
     }

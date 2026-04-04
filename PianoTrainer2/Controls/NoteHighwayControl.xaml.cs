@@ -29,12 +29,15 @@ namespace PianoTrainer2.Controls
     {
         // ── tunables ──────────────────────────────────────────────────────────
         public TrainingMode Mode        { get; set; } = TrainingMode.Continuous;
-        public double       PixelsPerMs { get; set; } = 0.3;   // visual speed
-        private const int   TickMs      = 16;                   // ~60 fps timer
-        private const double LookaheadMs  = 5000;              // spawn this many ms ahead
+        /// <summary>How many beats fit on screen (height = BeatsVisible beats). Default 4 = one bar.</summary>
+        public double BeatsVisible { get; set; } = 4.0;
+        // Derived each Start(): screenHeight / (BeatsVisible * beatDurationMs)
+        private double _pixelsPerMs = 0.3;
+        private const int    TickMs       = 16;
         private const double HitZoneHeight = 8;
         private const double HitWindowMs   = 200;
         private const double FreezeGraceMs = 4000;
+        private double LookaheadMs => ActualHeight / _pixelsPerMs;
 
         // ── events ────────────────────────────────────────────────────────────
         public event Action<int>? NoteHit;
@@ -70,6 +73,12 @@ namespace PianoTrainer2.Controls
         public void Start()
         {
             if (_song == null) return;
+
+            // 1 beat travels the full screen height → screenHeight = BeatsVisible * beatDurationMs * pixelsPerMs
+            double beatMs = _song.BeatDurationMs;
+            double h = ActualHeight > 10 ? ActualHeight : 600;
+            _pixelsPerMs = h / (BeatsVisible * beatMs);
+
             _falling.Clear();
             HighwayCanvas.Children.Clear();
             RedrawHitZone();
@@ -170,7 +179,7 @@ namespace PianoTrainer2.Controls
                 double x = PianoKeyboardLayout.GetKeyXCenter(note.NoteNumber)
                            - PianoKeyboardLayout.GetKeyWidth(note.NoteNumber) / 2.0;
                 double w = PianoKeyboardLayout.GetKeyWidth(note.NoteNumber) - 1;
-                double h = Math.Max(8, note.DurationMs * PixelsPerMs);
+                double h = Math.Max(8, note.DurationMs * _pixelsPerMs);
 
                 bool isBlack = PianoKeyboardLayout.IsBlack(note.NoteNumber);
                 var fill = isBlack
@@ -204,7 +213,7 @@ namespace PianoTrainer2.Controls
                 if (fn.State == HitState.Frozen) continue;
 
                 // top of note = position where its bottom will be at hitY when playbackMs == StartMs
-                double top = hitY - (fn.Source.StartMs - _playbackMs) * PixelsPerMs - fn.Visual.Height;
+                double top = hitY - (fn.Source.StartMs - _playbackMs) * _pixelsPerMs - fn.Visual.Height;
                 Canvas.SetTop(fn.Visual, top);
                 Canvas.SetTop(fn.Label,  top + 2);
             }
@@ -217,7 +226,7 @@ namespace PianoTrainer2.Controls
 
             foreach (var fn in _falling.Where(f => f.State == HitState.Active).ToList())
             {
-                double top    = hitY - (fn.Source.StartMs - _playbackMs) * PixelsPerMs - fn.Visual.Height;
+                double top    = hitY - (fn.Source.StartMs - _playbackMs) * _pixelsPerMs - fn.Visual.Height;
                 double bottom = top + fn.Visual.Height;
 
                 if (bottom < hitY) continue; // hasn't arrived yet
