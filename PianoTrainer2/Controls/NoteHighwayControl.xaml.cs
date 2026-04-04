@@ -80,8 +80,8 @@ namespace PianoTrainer2.Controls
             HighwayCanvas.Children.Clear();
             RedrawHitZone();
             _nextNoteIndex = 0;
-            _playbackMs    = 0;
-            _clockOffsetMs = 0;
+            _playbackMs    = -(FallSeconds * 1000.0); // start negative so first notes spawn at top
+            _clockOffsetMs = _playbackMs;
             _frozen        = false;
             _clock.Restart();
             _timer.Start();
