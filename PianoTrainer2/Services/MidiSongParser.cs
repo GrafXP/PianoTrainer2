@@ -14,27 +14,28 @@ namespace PianoTrainer2.Services
             int tpqn = midi.DeltaTicksPerQuarterNote;
 
             // Build tempo map from track 0: list of (absoluteTick, microsecondsPerBeat)
-            var tempoMap = new List<(long tick, long uspb)> { (0, 500_000) }; // default 120bpm
+            var tempoMap = new List<(long tick, long uspb)>();
             foreach (var ev in midi.Events[0])
             {
                 if (ev is TempoEvent te)
                     tempoMap.Add((ev.AbsoluteTime, te.MicrosecondsPerQuarterNote));
             }
             tempoMap.Sort((a, b) => a.tick.CompareTo(b.tick));
+            // Ensure there is always an entry at tick 0
+            if (tempoMap.Count == 0 || tempoMap[0].tick != 0)
+                tempoMap.Insert(0, (0, 500_000)); // default 120 BPM
 
-            double TicksToMs(long ticks)
+            // Convert absolute tick position to milliseconds using the tempo map
+            double TicksToMs(long absoluteTick)
             {
                 double ms = 0;
-                long remaining = ticks;
                 for (int i = 0; i < tempoMap.Count; i++)
                 {
                     long segStart = tempoMap[i].tick;
-                    long segEnd = i + 1 < tempoMap.Count ? tempoMap[i + 1].tick : long.MaxValue;
-                    long segTicks = Math.Min(remaining, segEnd - segStart);
-                    if (segTicks <= 0) break;
-                    ms += (double)segTicks / tpqn * tempoMap[i].uspb / 1000.0;
-                    remaining -= segTicks;
-                    if (remaining <= 0) break;
+                    long segEnd   = i + 1 < tempoMap.Count ? tempoMap[i + 1].tick : long.MaxValue;
+                    if (absoluteTick <= segStart) break;
+                    long ticksInSeg = Math.Min(absoluteTick, segEnd) - segStart;
+                    ms += (double)ticksInSeg / tpqn * tempoMap[i].uspb / 1000.0;
                 }
                 return ms;
             }
