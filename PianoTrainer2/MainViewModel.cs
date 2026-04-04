@@ -1,3 +1,4 @@
+using PianoTrainer2.ViewModels;
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
@@ -38,6 +39,7 @@ namespace PianoTrainer2
         public ObservableCollection<string> Devices { get; } = new();
         public ObservableCollection<NoteLogEntry> EventLog { get; } = new();
         public bool[] ActiveKeys { get; private set; } = new bool[128];
+        public TrainingViewModel TrainingVm { get; } = new();
 
         private int _selectedDevice = -1;
         public int SelectedDevice
@@ -74,6 +76,7 @@ namespace PianoTrainer2
 
         private void HandleNoteOn(NoteEventArgs e)
         {
+            TrainingVm.OnNoteOn(e);
             var name = NoteName(e.NoteNumber);
             var entry = new NoteLogEntry { NoteName = name, Velocity = e.Velocity, StartTime = DateTime.Now };
             _active[e.NoteNumber] = entry;
@@ -87,6 +90,7 @@ namespace PianoTrainer2
 
         private void HandleNoteOff(NoteEventArgs e)
         {
+            TrainingVm.OnNoteOff(e);
             if (_active.TryGetValue(e.NoteNumber, out var entry))
             {
                 entry.EndTime = DateTime.Now;

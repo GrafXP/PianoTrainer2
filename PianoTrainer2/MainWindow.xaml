@@ -2,56 +2,69 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:PianoTrainer2"
-        Title="Piano Trainer 2" Height="600" Width="1300"
+        xmlns:views="clr-namespace:PianoTrainer2.Views"
+        Title="Piano Trainer 2" Height="750" Width="1300"
         Background="#1e1e1e" Foreground="White">
-    <DockPanel Margin="8">
-        <!-- Device selector -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="MIDI Device:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-            <ComboBox Width="300" ItemsSource="{Binding Devices}"
-                      SelectedIndex="{Binding SelectedDevice, Mode=TwoWay}"/>
-            <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="16,0,0,0"
-                       Foreground="#aaa"/>
-        </StackPanel>
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+    </Window.Resources>
+    <TabControl Background="#1e1e1e" BorderThickness="0">
 
-        <!-- Piano keyboard -->
-        <ScrollViewer DockPanel.Dock="Top" HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8" Height="130">
-            <local:PianoKeyboard ActiveKeys="{Binding ActiveKeys}"/>
-        </ScrollViewer>
+        <!-- ── Tab 1: MIDI Monitor ── -->
+        <TabItem Header="MIDI Monitor">
+            <DockPanel Margin="8">
+                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
+                    <TextBlock Text="MIDI Device:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                    <ComboBox Width="300" ItemsSource="{Binding Devices}"
+                              SelectedIndex="{Binding SelectedDevice, Mode=TwoWay}"/>
+                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="16,0,0,0"
+                               Foreground="#aaa"/>
+                </StackPanel>
 
-        <!-- Event log -->
-        <DataGrid ItemsSource="{Binding EventLog}"
-                  AutoGenerateColumns="False" IsReadOnly="True"
-                  Background="#2a2a2a" Foreground="White"
-                  GridLinesVisibility="Horizontal" BorderThickness="0"
-                  RowBackground="#2a2a2a" AlternatingRowBackground="#252525"
-                  ColumnHeaderHeight="28">
-            <DataGrid.ColumnHeaderStyle>
-                <Style TargetType="DataGridColumnHeader">
-                    <Setter Property="Background" Value="#333"/>
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="Padding" Value="6,4"/>
-                </Style>
-            </DataGrid.ColumnHeaderStyle>
-            <DataGrid.CellStyle>
-                <Style TargetType="DataGridCell">
-                    <Setter Property="Foreground" Value="White"/>
-                    <Setter Property="BorderThickness" Value="0"/>
-                    <Style.Triggers>
-                        <DataTrigger Binding="{Binding IsActive}" Value="True">
-                            <Setter Property="Foreground" Value="DeepSkyBlue"/>
-                            <Setter Property="FontWeight" Value="Bold"/>
-                        </DataTrigger>
-                    </Style.Triggers>
-                </Style>
-            </DataGrid.CellStyle>
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Note" Binding="{Binding NoteName}" Width="80"/>
-                <DataGridTextColumn Header="Velocity" Binding="{Binding Velocity}" Width="80"/>
-                <DataGridTextColumn Header="Start" Binding="{Binding StartTime, StringFormat=HH:mm:ss.fff}" Width="120"/>
-                <DataGridTextColumn Header="Duration" Binding="{Binding Duration}" Width="100"/>
-            </DataGrid.Columns>
-        </DataGrid>
-    </DockPanel>
+                <ScrollViewer DockPanel.Dock="Top" HorizontalScrollBarVisibility="Auto"
+                              VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8" Height="130">
+                    <local:PianoKeyboard ActiveKeys="{Binding ActiveKeys}"/>
+                </ScrollViewer>
+
+                <DataGrid ItemsSource="{Binding EventLog}"
+                          AutoGenerateColumns="False" IsReadOnly="True"
+                          Background="#2a2a2a" Foreground="White"
+                          GridLinesVisibility="Horizontal" BorderThickness="0"
+                          RowBackground="#2a2a2a" AlternatingRowBackground="#252525"
+                          ColumnHeaderHeight="28">
+                    <DataGrid.ColumnHeaderStyle>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Background" Value="#333"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Padding" Value="6,4"/>
+                        </Style>
+                    </DataGrid.ColumnHeaderStyle>
+                    <DataGrid.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="BorderThickness" Value="0"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsActive}" Value="True">
+                                    <Setter Property="Foreground" Value="DeepSkyBlue"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGrid.CellStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="Note"     Binding="{Binding NoteName}"                                  Width="80"/>
+                        <DataGridTextColumn Header="Velocity" Binding="{Binding Velocity}"                                  Width="80"/>
+                        <DataGridTextColumn Header="Start"    Binding="{Binding StartTime, StringFormat=HH:mm:ss.fff}"      Width="120"/>
+                        <DataGridTextColumn Header="Duration" Binding="{Binding Duration}"                                  Width="100"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </TabItem>
+
+        <!-- ── Tab 2: Training ── -->
+        <TabItem Header="Training">
+            <views:TrainingView DataContext="{Binding TrainingVm}"/>
+        </TabItem>
+
+    </TabControl>
 </Window>

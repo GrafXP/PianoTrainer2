@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "O19HrHaSZyc=",
+  "dgSpecHash": "sEApsKOJzsY=",
   "success": true,
-  "projectFilePath": "C:\\Users\\Martin\\Desktop\\PianoTrainer2\\PianoTrainer2\\PianoTrainer2.csproj",
+  "projectFilePath": "I:\\Data\\Programming\\windsurf\\PianoTrainer2\\PianoTrainer2\\PianoTrainer2.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\Martin\\.nuget\\packages\\naudio\\2.3.0\\naudio.2.3.0.nupkg.sha512",
     "C:\\Users\\Martin\\.nuget\\packages\\naudio.asio\\2.3.0\\naudio.asio.2.3.0.nupkg.sha512",
@@ -12,5 +12,15 @@
     "C:\\Users\\Martin\\.nuget\\packages\\naudio.winforms\\2.3.0\\naudio.winforms.2.3.0.nupkg.sha512",
     "C:\\Users\\Martin\\.nuget\\packages\\naudio.winmm\\2.3.0\\naudio.winmm.2.3.0.nupkg.sha512"
   ],
-  "logs": []
+  "logs": [
+    {
+      "code": "NU1900",
+      "level": "Warning",
+      "message": "Error occurred while getting package vulnerability data: Unable to load the service index for source https://api.nuget.org/v3/index.json.",
+      "projectPath": "I:\\Data\\Programming\\windsurf\\PianoTrainer2\\PianoTrainer2\\PianoTrainer2.csproj",
+      "warningLevel": 1,
+      "filePath": "I:\\Data\\Programming\\windsurf\\PianoTrainer2\\PianoTrainer2\\PianoTrainer2.csproj",
+      "targetGraphs": []
+    }
+  ]
 }
