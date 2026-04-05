@@ -34,9 +34,11 @@ namespace PianoTrainer2.ViewModels
         public void AttachHighway(NoteHighwayControl hw)
         {
             _highway = hw;
-            _highway.NoteHit           += _ => { Score += 10; Combo++; };
-            _highway.NoteMissed        += _ => { Combo = 0; };
+            _highway.NoteHit            += _ => { Score += 10; Combo++; };
+            _highway.NoteMissed         += _ => { Combo = 0; };
             _highway.PendingKeysChanged += keys => PendingKeys = keys;
+            _highway.Mode          = SelectedMode;
+            _highway.TrackDuration = TrackDuration;
         }
 
         // ── Built-in song list ────────────────────────────────────────────
@@ -58,6 +60,28 @@ namespace PianoTrainer2.ViewModels
             get => _mode;
             set { _mode = value; OnPropertyChanged(); if (_highway != null) _highway.Mode = value; }
         }
+
+        // ── Track duration ────────────────────────────────────────────────
+        private bool _trackDuration = false;
+        public bool TrackDuration
+        {
+            get => _trackDuration;
+            set { _trackDuration = value; OnPropertyChanged(); if (_highway != null) _highway.TrackDuration = value; }
+        }
+
+        // ── Speed ─────────────────────────────────────────────────────────
+        public double[] SpeedValues { get; } = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+
+        private int _speedIndex = 3; // default 1.0×
+        public int SpeedIndex
+        {
+            get => _speedIndex;
+            set { _speedIndex = value; _speed = SpeedValues[value]; OnPropertyChanged(); OnPropertyChanged(nameof(SpeedLabel)); }
+        }
+
+        private double _speed = 1.0;
+        public double Speed => _speed;
+        public string SpeedLabel => $"{Speed:0.##}×";
 
         // ── Score / Combo ─────────────────────────────────────────────────
         private int _score;
@@ -126,7 +150,8 @@ namespace PianoTrainer2.ViewModels
                 var embedded = SelectedBuiltIn.EmbeddedSong;
                 Status = $"Playing: {embedded.Title}  ({embedded.Notes.Count} notes)";
                 _highway.Mode = SelectedMode;
-                _highway.LoadSong(embedded);
+                _highway.TrackDuration = TrackDuration;
+                _highway.LoadSong(embedded, Speed);
                 _highway.Start();
                 IsPlaying = true;
                 return;
@@ -167,7 +192,8 @@ namespace PianoTrainer2.ViewModels
                 var song = await Task.Run(() => MidiSongParser.Parse(path, SelectedBuiltIn?.Title ?? ""));
                 Status = $"Playing: {song.Title}  ({song.Notes.Count} notes)";
                 _highway.Mode = SelectedMode;
-                _highway.LoadSong(song);
+                _highway.TrackDuration = TrackDuration;
+                _highway.LoadSong(song, Speed);
                 _highway.Start();
                 IsPlaying = true;
             }

@@ -28,8 +28,9 @@ namespace PianoTrainer2.Controls
     public partial class NoteHighwayControl : UserControl
     {
         // ── tunables ──────────────────────────────────────────────────────────
-        public TrainingMode Mode        { get; set; } = TrainingMode.Continuous;
-        public double       FallSeconds { get; set; } = 5.0;
+        public TrainingMode Mode           { get; set; } = TrainingMode.Continuous;
+        public bool         TrackDuration  { get; set; } = false;
+        public double       FallSeconds    { get; set; } = 5.0;
         private double _pixelsPerMs = 0.3;
         private const int    TickMs        = 16;
         private const double HitZoneHeight = 8;
@@ -73,7 +74,29 @@ namespace PianoTrainer2.Controls
         }
 
         // ── public API ────────────────────────────────────────────────────────
-        public void LoadSong(Song song) { Stop(); _song = song; }
+        public void LoadSong(Song song, double speedMultiplier = 1.0)
+        {
+            Stop();
+            if (Math.Abs(speedMultiplier - 1.0) < 0.001)
+            {
+                _song = song;
+            }
+            else
+            {
+                // Scale all timestamps and durations by 1/speedMultiplier
+                double inv = 1.0 / speedMultiplier;
+                var scaled = song.Notes.Select(n => new SongNote(n.NoteNumber, n.StartMs * inv, n.DurationMs * inv)).ToList();
+                _song = new Song
+                {
+                    Title = song.Title,
+                    Composer = song.Composer,
+                    Difficulty = song.Difficulty,
+                    Notes = scaled,
+                    TotalDurationMs = song.TotalDurationMs * inv,
+                    InitialUsPerBeat = (long)(song.InitialUsPerBeat * inv)
+                };
+            }
+        }
 
         public void Start()
         {
@@ -151,8 +174,8 @@ namespace PianoTrainer2.Controls
             {
                 fn.KeyIsDown = false;
                 double held  = _playbackMs - fn.KeyDownAt;
-                // For short notes or WaitForPress mode, the press itself is enough — skip hold check
-                if (fn.Source.DurationMs < 300 || Mode == TrainingMode.WaitForPress || held >= fn.Source.DurationMs * 0.7)
+                // Skip hold check unless TrackDuration is enabled
+                if (!TrackDuration || fn.Source.DurationMs < 300 || Mode == TrainingMode.WaitForPress || held >= fn.Source.DurationMs * 0.7)
                     NoteHit?.Invoke(noteNumber);
                 else
                 {

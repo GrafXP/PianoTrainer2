@@ -113,6 +113,23 @@
 
                 <Rectangle Width="1" Fill="#2a2a2a" Margin="12,2"/>
 
+                <!-- Speed -->
+                <TextBlock Text="SPEED" VerticalAlignment="Center" Margin="0,0,8,0"
+                           FontSize="10" Foreground="#666" FontWeight="Bold"/>
+                <Slider Width="100" Minimum="0" Maximum="6" IsSnapToTickEnabled="True" TickFrequency="1"
+                        Value="{Binding SpeedIndex, Mode=TwoWay}"
+                        VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding SpeedLabel}" VerticalAlignment="Center"
+                           Foreground="#e0e0e0" FontSize="12" MinWidth="32" Margin="4,0,0,0"/>
+
+                <Rectangle Width="1" Fill="#2a2a2a" Margin="12,2"/>
+
+                <!-- Track Duration -->
+                <CheckBox Content="Track Duration" IsChecked="{Binding TrackDuration, Mode=TwoWay}"
+                          VerticalAlignment="Center" Foreground="#e0e0e0" FontSize="12"/>
+
+                <Rectangle Width="1" Fill="#2a2a2a" Margin="12,2"/>
+
                 <!-- Play / Stop -->
                 <Button Content="▶  Start" Style="{StaticResource StartButton}"
                         Command="{Binding StartCommand}" VerticalAlignment="Center"/>

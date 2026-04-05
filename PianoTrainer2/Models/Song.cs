@@ -5,6 +5,8 @@ namespace PianoTrainer2.Models
     public class Song
     {
         public string Title { get; init; } = "";
+        public string Composer { get; init; } = "Traditional";
+        public string Difficulty { get; init; } = "";
         public IReadOnlyList<SongNote> Notes { get; init; } = [];
         public double TotalDurationMs { get; init; }
         /// <summary>Microseconds per beat at the start of the song (first tempo event).</summary>

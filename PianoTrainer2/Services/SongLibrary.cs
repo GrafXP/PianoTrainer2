@@ -6,12 +6,12 @@ namespace PianoTrainer2.Services
 {
     public static class SongLibrary
     {
-        private static BuiltInSong Embedded(Song song, string composer) =>
-            new() { Title = song.Title, Composer = composer, Difficulty = "Absolute Beginner", EmbeddedSong = song };
+        private static BuiltInSong Embedded(Song song, string composer, string difficulty) =>
+            new() { Title = song.Title, Composer = composer, Difficulty = difficulty, EmbeddedSong = song };
 
         public static IReadOnlyList<BuiltInSong> Songs { get; } =
         [
-            ..EmbeddedSongLibrary.Songs.Select(s => Embedded(s, "Traditional")),
+            ..EmbeddedSongLibrary.Songs.Select(s => Embedded(s, s.Composer, s.Difficulty)),
             new BuiltInSong { Title = "Für Elise",           Composer = "Beethoven", Difficulty = "Beginner",     FileName = "fur_elise.mid",          Url = "https://bitmidi.com/uploads/28362.mid" },
             new BuiltInSong { Title = "Ode to Joy",          Composer = "Beethoven", Difficulty = "Beginner",     FileName = "ode_to_joy.mid",          Url = "https://bitmidi.com/uploads/81798.mid" },
             new BuiltInSong { Title = "Minuet in G",         Composer = "Bach",      Difficulty = "Beginner",     FileName = "minuet_g.mid",            Url = "https://bitmidi.com/uploads/28316.mid" },
