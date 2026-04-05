@@ -66,15 +66,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- ComboBox style -->
-        <Style x:Key="DarkCombo" TargetType="ComboBox">
-            <Setter Property="Background" Value="#2a2a2a"/>
-            <Setter Property="Foreground" Value="#e0e0e0"/>
-            <Setter Property="BorderBrush" Value="#3a3a3a"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="6,4"/>
-            <Setter Property="FontSize" Value="12"/>
-        </Style>
     </UserControl.Resources>
 
     <Grid>

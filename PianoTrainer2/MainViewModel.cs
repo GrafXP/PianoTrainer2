@@ -58,6 +58,8 @@ namespace PianoTrainer2
 
             if (Devices.Count == 0)
                 Devices.Add("(no MIDI devices)");
+            else
+                SelectedDevice = 0;
 
             _midi.NoteOn += (_, e) => Application.Current.Dispatcher.Invoke(() => HandleNoteOn(e));
             _midi.NoteOff += (_, e) => Application.Current.Dispatcher.Invoke(() => HandleNoteOff(e));
