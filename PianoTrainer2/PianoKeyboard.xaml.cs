@@ -41,6 +41,9 @@ namespace PianoTrainer2
 
         private static readonly SolidColorBrush _pendingWhite = new(Color.FromRgb(255, 230, 100));
         private static readonly SolidColorBrush _pendingBlack = new(Color.FromRgb(160, 120, 0));
+        private static readonly SolidColorBrush _c4Brush      = new(Color.FromRgb(200, 220, 255));
+
+        private const int C4 = 60;
 
         public PianoKeyboard()
         {
@@ -92,6 +95,22 @@ namespace PianoTrainer2
                 wi++;
             }
 
+            // C4 label
+            if (_keys[C4] != null)
+            {
+                var c4Label = new TextBlock
+                {
+                    Text = "C4",
+                    FontSize = whiteW * 0.45,
+                    Foreground = new SolidColorBrush(Color.FromRgb(80, 100, 160)),
+                    IsHitTestVisible = false
+                };
+                Canvas.SetLeft(c4Label, Canvas.GetLeft(_keys[C4]) + 1);
+                Canvas.SetTop(c4Label, whiteH - whiteW * 0.6);
+                Canvas.SetZIndex(c4Label, 2);
+                KeyCanvas.Children.Add(c4Label);
+            }
+
             // Black keys
             wi = 0;
             for (int n = FirstNote; n <= LastNote; n++)
@@ -129,6 +148,7 @@ namespace PianoTrainer2
 
                 _keys[n].Fill = isActive  ? Brushes.DeepSkyBlue :
                                 isPending ? (black ? _pendingBlack : _pendingWhite) :
+                                n == C4   ? _c4Brush :
                                             (black ? Brushes.Black  : Brushes.White);
             }
         }

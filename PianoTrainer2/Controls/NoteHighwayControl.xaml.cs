@@ -33,7 +33,7 @@ namespace PianoTrainer2.Controls
         private double _pixelsPerMs = 0.3;
         private const int    TickMs        = 16;
         private const double HitZoneHeight = 8;
-        private const double HitWindowMs   = 200;
+        private const double HitWindowMs   = 400;
         private const double FreezeGraceMs = 4000;
         private const double PendingWindowMs = 2000;
         private double LookaheadMs => ActualHeight / _pixelsPerMs;
@@ -111,40 +111,48 @@ namespace PianoTrainer2.Controls
         // ── MIDI forwarding ───────────────────────────────────────────────────
         public void KeyPressed(int noteNumber)
         {
-            foreach (var fn in _falling.Where(f => f.Source.NoteNumber == noteNumber))
+            // Prefer Frozen notes first (WaitForPress mode) — resolve ALL frozen duplicates
+            var frozenList = _falling.Where(f => f.Source.NoteNumber == noteNumber && f.State == HitState.Frozen).ToList();
+            if (frozenList.Count > 0)
             {
-                if (fn.State == HitState.Frozen)
+                foreach (var fn in frozenList)
                 {
-                    fn.State      = HitState.Hit;
-                    fn.KeyDownAt  = _playbackMs;
-                    fn.KeyIsDown  = true;
-                    _frozen = _falling.Any(f => f.State == HitState.Frozen);
-                    if (!_frozen) { _clockOffsetMs = _playbackMs; _clock.Restart(); }
+                    fn.State     = HitState.Hit;
+                    fn.KeyIsDown = false;
                     FlashNote(fn, true);
-                    return;
                 }
-                if (fn.State == HitState.Active)
+                _frozen = _falling.Any(f => f.State == HitState.Frozen);
+                if (!_frozen) { _clockOffsetMs = _playbackMs; _clock.Restart(); }
+                NoteHit?.Invoke(noteNumber);
+                return;
+            }
+
+            // Then try Active notes — pick the one closest to hit time
+            var active = _falling
+                .Where(f => f.Source.NoteNumber == noteNumber && f.State == HitState.Active)
+                .OrderBy(f => Math.Abs(_playbackMs - f.Source.StartMs))
+                .FirstOrDefault();
+            if (active != null)
+            {
+                double diff = Math.Abs(_playbackMs - active.Source.StartMs);
+                if (diff <= HitWindowMs)
                 {
-                    double diff = Math.Abs(_playbackMs - fn.Source.StartMs);
-                    if (diff <= HitWindowMs)
-                    {
-                        fn.State      = HitState.Hit;
-                        fn.KeyDownAt  = _playbackMs;
-                        fn.KeyIsDown  = true;
-                        FlashNote(fn, true);
-                        return;
-                    }
+                    active.State     = HitState.Hit;
+                    active.KeyDownAt = _playbackMs;
+                    active.KeyIsDown = true;
+                    FlashNote(active, true);
                 }
             }
         }
 
         public void KeyReleased(int noteNumber)
         {
-            foreach (var fn in _falling.Where(f => f.Source.NoteNumber == noteNumber && f.KeyIsDown))
+            foreach (var fn in _falling.Where(f => f.Source.NoteNumber == noteNumber && f.KeyIsDown && f.State != HitState.Hit))
             {
                 fn.KeyIsDown = false;
                 double held  = _playbackMs - fn.KeyDownAt;
-                if (held >= fn.Source.DurationMs * 0.7)
+                // For short notes or WaitForPress mode, the press itself is enough — skip hold check
+                if (fn.Source.DurationMs < 300 || Mode == TrainingMode.WaitForPress || held >= fn.Source.DurationMs * 0.7)
                     NoteHit?.Invoke(noteNumber);
                 else
                 {
@@ -304,11 +312,23 @@ namespace PianoTrainer2.Controls
         private void UpdatePendingKeys()
         {
             var pending = new bool[128];
-            foreach (var fn in _falling.Where(f => f.State is HitState.Active or HitState.Frozen))
+
+            // Find the earliest upcoming note time (the next chord to play)
+            var candidates = _falling
+                .Where(f => f.State is HitState.Active or HitState.Frozen)
+                .Select(f => f.Source.StartMs)
+                .Where(t => t - _playbackMs <= PendingWindowMs)
+                .ToList();
+
+            if (candidates.Count > 0)
             {
-                double msUntilHit = fn.Source.StartMs - _playbackMs;
-                if (msUntilHit <= PendingWindowMs)
-                    pending[fn.Source.NoteNumber] = true;
+                double earliest = candidates.Min();
+                const double ChordSlackMs = 50; // group notes within 50ms as one chord
+                foreach (var fn in _falling.Where(f => f.State is HitState.Active or HitState.Frozen))
+                {
+                    if (Math.Abs(fn.Source.StartMs - earliest) <= ChordSlackMs)
+                        pending[fn.Source.NoteNumber] = true;
+                }
             }
 
             bool changed = false;

@@ -157,7 +157,7 @@
 
         <!-- ── Piano keyboard ── -->
         <root:PianoKeyboard x:Name="TrainingKeyboard" Grid.Row="4"
-                            ActiveKeys="{Binding DataContext.ActiveKeys, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            ActiveKeys="{Binding ActiveKeys}"
                             PendingKeys="{Binding PendingKeys}"
                             Height="110"/>
     </Grid>

@@ -28,6 +28,9 @@ namespace PianoTrainer2.ViewModels
         private bool[] _pendingKeys = new bool[128];
         public bool[] PendingKeys { get => _pendingKeys; private set { _pendingKeys = value; OnPropertyChanged(); } }
 
+        private bool[] _activeKeys = new bool[128];
+        public bool[] ActiveKeys { get => _activeKeys; set { _activeKeys = value; OnPropertyChanged(); } }
+
         public void AttachHighway(NoteHighwayControl hw)
         {
             _highway = hw;

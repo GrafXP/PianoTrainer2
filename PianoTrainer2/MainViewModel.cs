@@ -86,6 +86,7 @@ namespace PianoTrainer2
             keysOn[e.NoteNumber] = true;
             ActiveKeys = keysOn;
             OnPropertyChanged(nameof(ActiveKeys));
+            TrainingVm.ActiveKeys = keysOn;
         }
 
         private void HandleNoteOff(NoteEventArgs e)
@@ -100,6 +101,7 @@ namespace PianoTrainer2
             keysOff[e.NoteNumber] = false;
             ActiveKeys = keysOff;
             OnPropertyChanged(nameof(ActiveKeys));
+            TrainingVm.ActiveKeys = keysOff;
         }
 
         private void RefreshDurations()
