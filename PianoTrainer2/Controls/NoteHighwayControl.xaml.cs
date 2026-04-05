@@ -35,14 +35,15 @@ namespace PianoTrainer2.Controls
         private const double HitZoneHeight = 8;
         private const double HitWindowMs   = 200;
         private const double FreezeGraceMs = 4000;
-        // Keys are "pending" (dim hint on keyboard) when within this many ms of hitting
         private const double PendingWindowMs = 2000;
         private double LookaheadMs => ActualHeight / _pixelsPerMs;
+
+        // Scale from nominal (938px) coordinate space to actual width
+        private double ScaleX => ActualWidth > 0 ? ActualWidth / PianoKeyboardLayout.TotalWidth : 1.0;
 
         // ── events ────────────────────────────────────────────────────────────
         public event Action<int>?       NoteHit;
         public event Action<int>?       NoteMissed;
-        /// Fired each tick with which notes are approaching (for keyboard hint)
         public event Action<bool[]>?    PendingKeysChanged;
 
         // ── private state ─────────────────────────────────────────────────────
@@ -68,7 +69,7 @@ namespace PianoTrainer2.Controls
             };
             _timer.Tick  += OnTick;
             Loaded       += (_, _) => { BuildRails(); RedrawHitZone(); };
-            SizeChanged  += (_, _) => { BuildRails(); RedrawHitZone(); };
+            SizeChanged  += (_, _) => { OnResize(); };
         }
 
         // ── public API ────────────────────────────────────────────────────────
@@ -104,7 +105,6 @@ namespace PianoTrainer2.Controls
             _hitZone = null;
             BuildRails();
             RedrawHitZone();
-            // Clear pending hints
             PendingKeysChanged?.Invoke(new bool[128]);
         }
 
@@ -178,24 +178,21 @@ namespace PianoTrainer2.Controls
             foreach (var r in _rails) HighwayCanvas.Children.Remove(r);
             _rails.Clear();
 
-            double h = ActualHeight > 0 ? ActualHeight : 600;
+            double h  = ActualHeight > 0 ? ActualHeight : 600;
+            double sx = ScaleX;
 
             for (int n = PianoKeyboardLayout.FirstNote; n <= PianoKeyboardLayout.LastNote; n++)
             {
                 bool isBlack = PianoKeyboardLayout.IsBlack(n);
-                double cx    = PianoKeyboardLayout.GetKeyXCenter(n);
+                double cx    = PianoKeyboardLayout.GetKeyXCenter(n) * sx;
 
-                // One thin vertical line per key, running full height
                 var line = new Line
                 {
-                    X1              = cx,
-                    Y1              = 0,
-                    X2              = cx,
-                    Y2              = h,
-                    Stroke          = isBlack
-                                        ? new SolidColorBrush(Color.FromArgb(40, 150, 180, 255))
-                                        : new SolidColorBrush(Color.FromArgb(25, 200, 220, 255)),
-                    StrokeThickness = isBlack ? 1.0 : PianoKeyboardLayout.WhiteKeyWidth - 1,
+                    X1 = cx, Y1 = 0, X2 = cx, Y2 = h,
+                    Stroke = isBlack
+                        ? new SolidColorBrush(Color.FromArgb(40, 150, 180, 255))
+                        : new SolidColorBrush(Color.FromArgb(25, 200, 220, 255)),
+                    StrokeThickness  = isBlack ? sx : (PianoKeyboardLayout.WhiteKeyWidth - 1) * sx,
                     IsHitTestVisible = false
                 };
                 Canvas.SetZIndex(line, 1);
@@ -209,15 +206,17 @@ namespace PianoTrainer2.Controls
         {
             if (_song == null) return;
             double threshold = _playbackMs + LookaheadMs;
+            double sx = ScaleX;
+
             while (_nextNoteIndex < _song.Notes.Count &&
                    _song.Notes[_nextNoteIndex].StartMs <= threshold)
             {
                 var note = _song.Notes[_nextNoteIndex++];
                 if (!PianoKeyboardLayout.IsInRange(note.NoteNumber)) continue;
 
-                double x = PianoKeyboardLayout.GetKeyXCenter(note.NoteNumber)
-                           - PianoKeyboardLayout.GetKeyWidth(note.NoteNumber) / 2.0;
-                double w = PianoKeyboardLayout.GetKeyWidth(note.NoteNumber) - 1;
+                double x = (PianoKeyboardLayout.GetKeyXCenter(note.NoteNumber)
+                            - PianoKeyboardLayout.GetKeyWidth(note.NoteNumber) / 2.0) * sx;
+                double w = (PianoKeyboardLayout.GetKeyWidth(note.NoteNumber) - 1) * sx;
                 double h = Math.Max(8, note.DurationMs * _pixelsPerMs);
 
                 bool isBlack = PianoKeyboardLayout.IsBlack(note.NoteNumber);
@@ -312,7 +311,6 @@ namespace PianoTrainer2.Controls
                     pending[fn.Source.NoteNumber] = true;
             }
 
-            // Only fire if changed
             bool changed = false;
             for (int i = 0; i < 128; i++)
                 if (pending[i] != _lastPending[i]) { changed = true; break; }
@@ -346,7 +344,7 @@ namespace PianoTrainer2.Controls
             if (_hitZone != null) HighwayCanvas.Children.Remove(_hitZone);
             _hitZone = new Rectangle
             {
-                Width  = PianoKeyboardLayout.TotalWidth,
+                Width  = ActualWidth > 0 ? ActualWidth : PianoKeyboardLayout.TotalWidth,
                 Height = HitZoneHeight,
                 Fill   = new SolidColorBrush(Color.FromArgb(120, 255, 255, 255))
             };
@@ -354,6 +352,41 @@ namespace PianoTrainer2.Controls
             Canvas.SetTop (_hitZone, ActualHeight - HitZoneHeight);
             Canvas.SetZIndex(_hitZone, 10);
             HighwayCanvas.Children.Add(_hitZone);
+        }
+
+        private void OnResize()
+        {
+            if (ActualHeight > 10 && _timer.IsEnabled)
+                _pixelsPerMs = ActualHeight / (FallSeconds * 1000.0);
+            BuildRails();
+            RedrawHitZone();
+            RescaleFallingNotes();
+            RepositionAllNotes();
+        }
+
+        private void RepositionAllNotes()
+        {
+            double hitY = ActualHeight - HitZoneHeight;
+            foreach (var fn in _falling)
+            {
+                double top = hitY - (fn.Source.StartMs - _playbackMs) * _pixelsPerMs - fn.Visual.Height;
+                Canvas.SetTop(fn.Visual, top);
+                Canvas.SetTop(fn.Label,  top + 2);
+            }
+        }
+
+        private void RescaleFallingNotes()
+        {
+            double sx = ScaleX;
+            foreach (var fn in _falling)
+            {
+                double x = (PianoKeyboardLayout.GetKeyXCenter(fn.Source.NoteNumber)
+                            - PianoKeyboardLayout.GetKeyWidth(fn.Source.NoteNumber) / 2.0) * sx;
+                double w = (PianoKeyboardLayout.GetKeyWidth(fn.Source.NoteNumber) - 1) * sx;
+                fn.Visual.Width = w;
+                Canvas.SetLeft(fn.Visual, x);
+                Canvas.SetLeft(fn.Label,  x + 1);
+            }
         }
 
         private void FlashNote(FallingNote fn, bool hit)

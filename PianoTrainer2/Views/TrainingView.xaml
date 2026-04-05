@@ -4,74 +4,161 @@
              xmlns:ctrl="clr-namespace:PianoTrainer2.Controls"
              xmlns:root="clr-namespace:PianoTrainer2"
              xmlns:vm="clr-namespace:PianoTrainer2.ViewModels"
-             Background="#1e1e1e" Foreground="White">
+             Background="#0f0f0f" Foreground="White">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <!-- Flat button style -->
+        <Style x:Key="FlatButton" TargetType="Button">
+            <Setter Property="Background" Value="#2a2a2a"/>
+            <Setter Property="Foreground" Value="#e0e0e0"/>
+            <Setter Property="BorderBrush" Value="#3a3a3a"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="14,5"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="4" Padding="{TemplateBinding Padding}">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3a3a3a"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#1a1a1a"/>
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.35"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Accent button (Start) -->
+        <Style x:Key="StartButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Background" Value="#1a3a1a"/>
+            <Setter Property="BorderBrush" Value="#2a5a2a"/>
+            <Setter Property="Foreground" Value="#60ee60"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2a4a2a"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Stop button -->
+        <Style x:Key="StopButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Background" Value="#3a1a1a"/>
+            <Setter Property="BorderBrush" Value="#5a2a2a"/>
+            <Setter Property="Foreground" Value="#ee6060"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4a2a2a"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ComboBox style -->
+        <Style x:Key="DarkCombo" TargetType="ComboBox">
+            <Setter Property="Background" Value="#2a2a2a"/>
+            <Setter Property="Foreground" Value="#e0e0e0"/>
+            <Setter Property="BorderBrush" Value="#3a3a3a"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="12"/>
+        </Style>
     </UserControl.Resources>
-    <DockPanel>
-        <!-- Toolbar -->
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="8,6,8,4">
-            <!-- Built-in songs -->
-            <TextBlock Text="Song:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox Width="280" ItemsSource="{Binding BuiltInSongs}"
-                      SelectedItem="{Binding SelectedBuiltIn, Mode=TwoWay}"
-                      VerticalAlignment="Center"/>
-            <TextBlock Text="or" VerticalAlignment="Center" Margin="8,0"/>
-            <Button Content="Browse .mid…" Command="{Binding BrowseCommand}"
-                    Padding="6,2" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding CustomMidiPath}" VerticalAlignment="Center"
-                       Foreground="#aaa" Margin="6,0" MaxWidth="200"
-                       TextTrimming="CharacterEllipsis"/>
 
-            <Separator Width="1" Background="#555" Margin="10,0"/>
+    <Grid>
+        <Grid.RowDefinitions>
+            <!-- Toolbar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Download progress -->
+            <RowDefinition Height="Auto"/>
+            <!-- Status -->
+            <RowDefinition Height="Auto"/>
+            <!-- Highway (fills all remaining space) -->
+            <RowDefinition Height="*"/>
+            <!-- Piano keyboard -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
 
-            <!-- Mode -->
-            <TextBlock Text="Mode:" VerticalAlignment="Center" Margin="0,0,6,0"/>
-            <ComboBox Width="130" ItemsSource="{Binding ModeValues}"
-                      SelectedItem="{Binding SelectedMode, Mode=TwoWay}"
-                      VerticalAlignment="Center"/>
+        <!-- ── Toolbar ── -->
+        <Border Grid.Row="0" Background="#181818" BorderBrush="#2a2a2a" BorderThickness="0,0,0,1"
+                Padding="10,7">
+            <StackPanel Orientation="Horizontal">
 
-            <Separator Width="1" Background="#555" Margin="10,0"/>
+                <!-- Song label -->
+                <TextBlock Text="SONG" VerticalAlignment="Center" Margin="0,0,8,0"
+                           FontSize="10" Foreground="#666" FontWeight="Bold"/>
+                <ComboBox Width="260" Style="{StaticResource DarkCombo}"
+                          ItemsSource="{Binding BuiltInSongs}"
+                          SelectedItem="{Binding SelectedBuiltIn, Mode=TwoWay}"
+                          VerticalAlignment="Center"/>
+                <TextBlock Text="or" VerticalAlignment="Center" Margin="8,0" Foreground="#555" FontSize="11"/>
+                <Button Content="Browse .mid…" Style="{StaticResource FlatButton}"
+                        Command="{Binding BrowseCommand}" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding CustomMidiPath}" VerticalAlignment="Center"
+                           Foreground="#555" Margin="6,0" MaxWidth="180" FontSize="11"
+                           TextTrimming="CharacterEllipsis"/>
 
-            <!-- Play/Stop -->
-            <Button Content="▶ Start" Command="{Binding StartCommand}"
-                    Padding="10,2" VerticalAlignment="Center" Foreground="LimeGreen"/>
-            <Button Content="■ Stop"  Command="{Binding StopCommand}"
-                    Padding="10,2" VerticalAlignment="Center" Foreground="OrangeRed" Margin="6,0,0,0"/>
+                <Rectangle Width="1" Fill="#2a2a2a" Margin="12,2"/>
 
-            <Separator Width="1" Background="#555" Margin="10,0"/>
+                <!-- Mode label -->
+                <TextBlock Text="MODE" VerticalAlignment="Center" Margin="0,0,8,0"
+                           FontSize="10" Foreground="#666" FontWeight="Bold"/>
+                <ComboBox Width="140" Style="{StaticResource DarkCombo}"
+                          ItemsSource="{Binding ModeValues}"
+                          SelectedItem="{Binding SelectedMode, Mode=TwoWay}"
+                          VerticalAlignment="Center"/>
 
-            <!-- Score -->
-            <TextBlock Text="Score:" VerticalAlignment="Center" Margin="0,0,4,0"/>
-            <TextBlock Text="{Binding Score}" VerticalAlignment="Center" FontWeight="Bold"
-                       Foreground="DeepSkyBlue" MinWidth="40"/>
-            <TextBlock Text="Combo:" VerticalAlignment="Center" Margin="6,0,4,0"/>
-            <TextBlock Text="{Binding Combo}" VerticalAlignment="Center" FontWeight="Bold"
-                       Foreground="Gold" MinWidth="30"/>
-        </StackPanel>
+                <Rectangle Width="1" Fill="#2a2a2a" Margin="12,2"/>
 
-        <!-- Download progress -->
-        <ProgressBar DockPanel.Dock="Top" Height="4" Minimum="0" Maximum="100"
+                <!-- Play / Stop -->
+                <Button Content="▶  Start" Style="{StaticResource StartButton}"
+                        Command="{Binding StartCommand}" VerticalAlignment="Center"/>
+                <Button Content="■  Stop" Style="{StaticResource StopButton}"
+                        Command="{Binding StopCommand}" VerticalAlignment="Center" Margin="6,0,0,0"/>
+
+                <Rectangle Width="1" Fill="#2a2a2a" Margin="12,2"/>
+
+                <!-- Score / Combo -->
+                <TextBlock Text="SCORE" VerticalAlignment="Center" Margin="0,0,6,0"
+                           FontSize="10" Foreground="#666" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Score}" VerticalAlignment="Center"
+                           FontWeight="Bold" FontSize="16" Foreground="#29b6f6" MinWidth="50"/>
+                <TextBlock Text="COMBO" VerticalAlignment="Center" Margin="8,0,6,0"
+                           FontSize="10" Foreground="#666" FontWeight="Bold"/>
+                <TextBlock Text="{Binding Combo}" VerticalAlignment="Center"
+                           FontWeight="Bold" FontSize="16" Foreground="#ffd54f" MinWidth="40"/>
+            </StackPanel>
+        </Border>
+
+        <!-- ── Download progress ── -->
+        <ProgressBar Grid.Row="1" Height="3" Minimum="0" Maximum="100"
                      Value="{Binding DownloadProgress}"
-                     Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVisibility}}"/>
+                     Visibility="{Binding IsDownloading, Converter={StaticResource BoolToVisibility}}"
+                     Foreground="#29b6f6" Background="#1a1a1a"/>
 
-        <!-- Status bar -->
-        <TextBlock DockPanel.Dock="Top" Text="{Binding Status}"
-                   Foreground="#aaa" Margin="8,2,8,4" FontSize="11"/>
+        <!-- ── Status bar ── -->
+        <TextBlock Grid.Row="2" Text="{Binding Status}"
+                   Foreground="#444" Margin="12,3,12,3" FontSize="11"/>
 
-        <!-- Piano keyboard (bottom) -->
-        <ScrollViewer DockPanel.Dock="Bottom" HorizontalScrollBarVisibility="Auto"
-                      VerticalScrollBarVisibility="Disabled" Height="130">
-            <root:PianoKeyboard x:Name="TrainingKeyboard"
-                                ActiveKeys="{Binding DataContext.ActiveKeys, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                PendingKeys="{Binding PendingKeys}"/>
-        </ScrollViewer>
+        <!-- ── Highway (stretches to fill) ── -->
+        <ctrl:NoteHighwayControl x:Name="Highway" Grid.Row="3"/>
 
-        <!-- Highway (fills remaining space) -->
-        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Disabled">
-            <ctrl:NoteHighwayControl x:Name="Highway"
-                                     Width="{x:Static ctrl:PianoKeyboardLayout.TotalWidth}"
-                                     MinHeight="400"/>
-        </ScrollViewer>
-    </DockPanel>
+        <!-- ── Piano keyboard ── -->
+        <root:PianoKeyboard x:Name="TrainingKeyboard" Grid.Row="4"
+                            ActiveKeys="{Binding DataContext.ActiveKeys, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                            PendingKeys="{Binding PendingKeys}"
+                            Height="110"/>
+    </Grid>
 </UserControl>

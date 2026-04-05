@@ -3,66 +3,156 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:PianoTrainer2"
         xmlns:views="clr-namespace:PianoTrainer2.Views"
-        Title="Piano Trainer 2" Height="750" Width="1300"
-        Background="#1e1e1e" Foreground="White">
+        Title="Piano Trainer 2" Height="800" Width="1400"
+        Background="#0f0f0f" Foreground="White"
+        WindowStyle="SingleBorderWindow">
+
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BoolToVisibility"/>
+
+        <Style x:Key="ModernTab" TargetType="TabItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#666"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="20,8"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="TabBorder" Background="Transparent"
+                                BorderThickness="0,0,0,2" BorderBrush="Transparent"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="TabBorder" Property="BorderBrush" Value="#29b6f6"/>
+                                <Setter Property="Foreground" Value="#e0e0e0"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Foreground" Value="#aaa"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="ModernTabControl" TargetType="TabControl">
+            <Setter Property="Background" Value="#0f0f0f"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabControl">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+                            <!-- Tab header bar -->
+                            <Border Grid.Row="0" Background="#181818"
+                                    BorderBrush="#2a2a2a" BorderThickness="0,0,0,1">
+                                <DockPanel>
+                                    <!-- App title -->
+                                    <TextBlock DockPanel.Dock="Left" Text="🎹 PIANO TRAINER"
+                                               Foreground="#29b6f6" FontWeight="Bold" FontSize="13"
+                                               VerticalAlignment="Center" Margin="16,0,24,0"/>
+                                    <TabPanel IsItemsHost="True" Background="Transparent"/>
+                                </DockPanel>
+                            </Border>
+                            <!-- Content -->
+                            <ContentPresenter Grid.Row="1" ContentSource="SelectedContent"/>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- DataGrid styles -->
+        <Style x:Key="DarkGrid" TargetType="DataGrid">
+            <Setter Property="Background" Value="#161616"/>
+            <Setter Property="Foreground" Value="#ccc"/>
+            <Setter Property="GridLinesVisibility" Value="Horizontal"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#222"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="RowBackground" Value="#161616"/>
+            <Setter Property="AlternatingRowBackground" Value="#1a1a1a"/>
+            <Setter Property="ColumnHeaderHeight" Value="30"/>
+        </Style>
     </Window.Resources>
-    <TabControl Background="#1e1e1e" BorderThickness="0">
+
+    <TabControl Style="{StaticResource ModernTabControl}">
 
         <!-- ── Tab 1: MIDI Monitor ── -->
-        <TabItem Header="MIDI Monitor">
-            <DockPanel Margin="8">
-                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,8">
-                    <TextBlock Text="MIDI Device:" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                    <ComboBox Width="300" ItemsSource="{Binding Devices}"
-                              SelectedIndex="{Binding SelectedDevice, Mode=TwoWay}"/>
-                    <TextBlock Text="{Binding Status}" VerticalAlignment="Center" Margin="16,0,0,0"
-                               Foreground="#aaa"/>
-                </StackPanel>
+        <TabItem Header="MIDI Monitor" Style="{StaticResource ModernTab}">
+            <Grid Background="#0f0f0f">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <ScrollViewer DockPanel.Dock="Top" HorizontalScrollBarVisibility="Auto"
-                              VerticalScrollBarVisibility="Disabled" Margin="0,0,0,8" Height="130">
-                    <local:PianoKeyboard ActiveKeys="{Binding ActiveKeys}"/>
-                </ScrollViewer>
+                <!-- Device selector bar -->
+                <Border Grid.Row="0" Background="#181818" BorderBrush="#2a2a2a"
+                        BorderThickness="0,0,0,1" Padding="12,8">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="MIDI DEVICE" VerticalAlignment="Center" Margin="0,0,10,0"
+                                   FontSize="10" Foreground="#666" FontWeight="Bold"/>
+                        <ComboBox Width="300" ItemsSource="{Binding Devices}"
+                                  SelectedIndex="{Binding SelectedDevice, Mode=TwoWay}"
+                                  Background="#2a2a2a" Foreground="#e0e0e0"
+                                  BorderBrush="#3a3a3a"/>
+                        <TextBlock Text="{Binding Status}" VerticalAlignment="Center"
+                                   Margin="16,0,0,0" Foreground="#555" FontSize="11"/>
+                    </StackPanel>
+                </Border>
 
-                <DataGrid ItemsSource="{Binding EventLog}"
-                          AutoGenerateColumns="False" IsReadOnly="True"
-                          Background="#2a2a2a" Foreground="White"
-                          GridLinesVisibility="Horizontal" BorderThickness="0"
-                          RowBackground="#2a2a2a" AlternatingRowBackground="#252525"
-                          ColumnHeaderHeight="28">
+                <!-- Piano -->
+                <local:PianoKeyboard Grid.Row="1" ActiveKeys="{Binding ActiveKeys}" Height="110"/>
+
+                <!-- Event log -->
+                <DataGrid Grid.Row="2" Style="{StaticResource DarkGrid}"
+                          ItemsSource="{Binding EventLog}"
+                          AutoGenerateColumns="False" IsReadOnly="True">
                     <DataGrid.ColumnHeaderStyle>
                         <Style TargetType="DataGridColumnHeader">
-                            <Setter Property="Background" Value="#333"/>
-                            <Setter Property="Foreground" Value="White"/>
-                            <Setter Property="Padding" Value="6,4"/>
+                            <Setter Property="Background" Value="#202020"/>
+                            <Setter Property="Foreground" Value="#888"/>
+                            <Setter Property="Padding" Value="10,6"/>
+                            <Setter Property="FontSize" Value="11"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="BorderThickness" Value="0"/>
                         </Style>
                     </DataGrid.ColumnHeaderStyle>
                     <DataGrid.CellStyle>
                         <Style TargetType="DataGridCell">
-                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="Foreground" Value="#ccc"/>
                             <Setter Property="BorderThickness" Value="0"/>
+                            <Setter Property="Padding" Value="10,4"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding IsActive}" Value="True">
-                                    <Setter Property="Foreground" Value="DeepSkyBlue"/>
+                                    <Setter Property="Foreground" Value="#29b6f6"/>
                                     <Setter Property="FontWeight" Value="Bold"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
                     </DataGrid.CellStyle>
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="Note"     Binding="{Binding NoteName}"                                  Width="80"/>
-                        <DataGridTextColumn Header="Velocity" Binding="{Binding Velocity}"                                  Width="80"/>
-                        <DataGridTextColumn Header="Start"    Binding="{Binding StartTime, StringFormat=HH:mm:ss.fff}"      Width="120"/>
-                        <DataGridTextColumn Header="Duration" Binding="{Binding Duration}"                                  Width="100"/>
+                        <DataGridTextColumn Header="Note"     Binding="{Binding NoteName}"                             Width="100"/>
+                        <DataGridTextColumn Header="Velocity" Binding="{Binding Velocity}"                             Width="100"/>
+                        <DataGridTextColumn Header="Start"    Binding="{Binding StartTime, StringFormat=HH:mm:ss.fff}" Width="140"/>
+                        <DataGridTextColumn Header="Duration" Binding="{Binding Duration}"                             Width="120"/>
                     </DataGrid.Columns>
                 </DataGrid>
-            </DockPanel>
+            </Grid>
         </TabItem>
 
         <!-- ── Tab 2: Training ── -->
-        <TabItem Header="Training">
+        <TabItem Header="Training" Style="{StaticResource ModernTab}">
             <views:TrainingView DataContext="{Binding TrainingVm}"/>
         </TabItem>
 

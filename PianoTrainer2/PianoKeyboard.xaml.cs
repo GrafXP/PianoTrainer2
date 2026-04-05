@@ -10,10 +10,10 @@ namespace PianoTrainer2
         private const int FirstNote = 21;
         private const int LastNote  = 108;
 
-        private const double WhiteKeyWidth  = 14;
-        private const double WhiteKeyHeight = 100;
-        private const double BlackKeyWidth  = 9;
-        private const double BlackKeyHeight = 62;
+        private const double NominalWhiteKeyWidth  = 14;
+        private const double NominalWhiteKeyHeight = 100;
+        private const double NominalBlackKeyWidth  = 9;
+        private const double NominalBlackKeyHeight = 62;
 
         private readonly Rectangle[] _keys = new Rectangle[128];
 
@@ -45,22 +45,34 @@ namespace PianoTrainer2
         public PianoKeyboard()
         {
             InitializeComponent();
-            Loaded += (_, _) => BuildKeys();
+            Loaded      += (_, _) => BuildKeys();
+            SizeChanged += (_, _) => BuildKeys();
         }
 
         private static bool IsBlack(int note) => (note % 12) is 1 or 3 or 6 or 8 or 10;
 
+        private int CountWhiteKeys()
+        {
+            int c = 0;
+            for (int n = FirstNote; n <= LastNote; n++)
+                if (!IsBlack(n)) c++;
+            return c;
+        }
+
         private void BuildKeys()
         {
+            if (ActualWidth < 10) return;
+
             KeyCanvas.Children.Clear();
 
-            int whiteCount = 0;
-            for (int n = FirstNote; n <= LastNote; n++)
-                if (!IsBlack(n)) whiteCount++;
+            int whiteCount = CountWhiteKeys();
+            double scaleX = ActualWidth / (whiteCount * NominalWhiteKeyWidth);
+            double whiteW = NominalWhiteKeyWidth  * scaleX;
+            double whiteH = NominalWhiteKeyHeight;
+            double blackW = NominalBlackKeyWidth  * scaleX;
+            double blackH = NominalBlackKeyHeight;
 
-            double totalWidth = whiteCount * WhiteKeyWidth;
-            KeyCanvas.Width = totalWidth;
-            Width = totalWidth;
+            KeyCanvas.Width = ActualWidth;
 
             // White keys
             int wi = 0;
@@ -69,10 +81,10 @@ namespace PianoTrainer2
                 if (IsBlack(n)) continue;
                 var r = new Rectangle
                 {
-                    Width = WhiteKeyWidth - 1, Height = WhiteKeyHeight,
+                    Width = whiteW - 1, Height = whiteH,
                     Fill = Brushes.White, Stroke = Brushes.Black, StrokeThickness = 0.5, Tag = n
                 };
-                Canvas.SetLeft(r, wi * WhiteKeyWidth);
+                Canvas.SetLeft(r, wi * whiteW);
                 Canvas.SetTop(r, 0);
                 Canvas.SetZIndex(r, 0);
                 KeyCanvas.Children.Add(r);
@@ -88,10 +100,10 @@ namespace PianoTrainer2
                 {
                     var r = new Rectangle
                     {
-                        Width = BlackKeyWidth, Height = BlackKeyHeight,
+                        Width = blackW, Height = blackH,
                         Fill = Brushes.Black, Tag = n
                     };
-                    double x = wi * WhiteKeyWidth - BlackKeyWidth / 2.0;
+                    double x = wi * whiteW - blackW / 2.0;
                     Canvas.SetLeft(r, x);
                     Canvas.SetTop(r, 0);
                     Canvas.SetZIndex(r, 1);
@@ -100,6 +112,8 @@ namespace PianoTrainer2
                 }
                 else wi++;
             }
+
+            Refresh();
         }
 
         private void Refresh()
