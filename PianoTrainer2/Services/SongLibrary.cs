@@ -1,17 +1,17 @@
 using PianoTrainer2.Models;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace PianoTrainer2.Services
 {
     public static class SongLibrary
     {
+        private static BuiltInSong Embedded(Song song, string composer) =>
+            new() { Title = song.Title, Composer = composer, Difficulty = "Absolute Beginner", EmbeddedSong = song };
+
         public static IReadOnlyList<BuiltInSong> Songs { get; } =
         [
-            new BuiltInSong { Title = "Hot Cross Buns",      Composer = "Traditional", Difficulty = "Absolute Beginner", FileName = "hot_cross_buns.mid",     Url = "https://bitmidi.com/uploads/75861.mid" },
-            new BuiltInSong { Title = "Mary Had a Little Lamb", Composer = "Traditional", Difficulty = "Absolute Beginner", FileName = "mary_little_lamb.mid", Url = "https://bitmidi.com/uploads/75862.mid" },
-            new BuiltInSong { Title = "Jingle Bells (Simple)", Composer = "Traditional", Difficulty = "Absolute Beginner", FileName = "jingle_bells_simple.mid", Url = "https://bitmidi.com/uploads/36322.mid" },
-            new BuiltInSong { Title = "Happy Birthday",      Composer = "Traditional", Difficulty = "Absolute Beginner", FileName = "happy_birthday.mid",     Url = "https://bitmidi.com/uploads/36231.mid" },
-            new BuiltInSong { Title = "Ode to Joy (Right Hand)", Composer = "Beethoven", Difficulty = "Absolute Beginner", FileName = "ode_to_joy_rh.mid",   Url = "https://bitmidi.com/uploads/81798.mid" },
+            ..EmbeddedSongLibrary.Songs.Select(s => Embedded(s, "Traditional")),
             new BuiltInSong { Title = "Für Elise",           Composer = "Beethoven", Difficulty = "Beginner",     FileName = "fur_elise.mid",          Url = "https://bitmidi.com/uploads/28362.mid" },
             new BuiltInSong { Title = "Ode to Joy",          Composer = "Beethoven", Difficulty = "Beginner",     FileName = "ode_to_joy.mid",          Url = "https://bitmidi.com/uploads/81798.mid" },
             new BuiltInSong { Title = "Minuet in G",         Composer = "Bach",      Difficulty = "Beginner",     FileName = "minuet_g.mid",            Url = "https://bitmidi.com/uploads/28316.mid" },

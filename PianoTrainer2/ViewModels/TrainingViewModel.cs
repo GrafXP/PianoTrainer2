@@ -120,6 +120,18 @@ namespace PianoTrainer2.ViewModels
             if (_highway == null) return;
             Score = 0; Combo = 0;
 
+            // Embedded songs need no download or parsing
+            if (SelectedBuiltIn?.EmbeddedSong != null)
+            {
+                var embedded = SelectedBuiltIn.EmbeddedSong;
+                Status = $"Playing: {embedded.Title}  ({embedded.Notes.Count} notes)";
+                _highway.Mode = SelectedMode;
+                _highway.LoadSong(embedded);
+                _highway.Start();
+                IsPlaying = true;
+                return;
+            }
+
             string? path = CustomMidiPath;
 
             if (path == null && SelectedBuiltIn != null)

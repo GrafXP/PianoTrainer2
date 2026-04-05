@@ -8,6 +8,9 @@ namespace PianoTrainer2.Models
         public string FileName { get; init; } = "";
         public string Difficulty { get; init; } = "";
 
+        /// <summary>If set, this song is played directly from memory — no download needed.</summary>
+        public Song? EmbeddedSong { get; init; }
+
         public override string ToString() => $"{Title} — {Composer} ({Difficulty})";
     }
 }
