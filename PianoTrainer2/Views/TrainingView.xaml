@@ -175,7 +175,86 @@
                    Foreground="#444" Margin="12,3,12,3" FontSize="11"/>
 
         <!-- ── Highway (stretches to fill) ── -->
-        <ctrl:NoteHighwayControl x:Name="Highway" Grid.Row="3"/>
+        <Grid Grid.Row="3">
+            <ctrl:NoteHighwayControl x:Name="Highway"/>
+
+            <!-- ── End-of-song overlay ── -->
+            <Grid Visibility="{Binding ShowEndScreen, Converter={StaticResource BoolToVisibility}}"
+                  Background="#b0000000">
+                <Border HorizontalAlignment="Center" VerticalAlignment="Center"
+                        Background="#1a1a1a" BorderBrush="#29b6f6" BorderThickness="1"
+                        CornerRadius="12" Padding="48,36" MinWidth="400">
+                    <StackPanel>
+                        <!-- Title -->
+                        <TextBlock Text="🎹  SONG COMPLETE" FontSize="22" FontWeight="Bold"
+                                   Foreground="#29b6f6" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding EndSongTitle}" FontSize="13"
+                                   Foreground="#888" HorizontalAlignment="Center" Margin="0,0,0,28"
+                                   TextTrimming="CharacterEllipsis"/>
+
+                        <!-- Stats grid -->
+                        <Grid Margin="0,0,0,28">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <!-- Accuracy -->
+                            <StackPanel Grid.Row="0" Grid.Column="0" HorizontalAlignment="Center" Margin="0,0,0,20">
+                                <TextBlock Text="{Binding EndAccuracy, StringFormat={}{0}%}"
+                                           FontSize="40" FontWeight="Bold" Foreground="#ffd54f"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="ACCURACY" FontSize="10" Foreground="#666"
+                                           FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Score -->
+                            <StackPanel Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" Margin="0,0,0,20">
+                                <TextBlock Text="{Binding EndScore}"
+                                           FontSize="40" FontWeight="Bold" Foreground="#29b6f6"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="SCORE" FontSize="10" Foreground="#666"
+                                           FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Notes hit/total -->
+                            <StackPanel Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                    <TextBlock Text="{Binding EndNotesHit}" FontSize="24" FontWeight="Bold" Foreground="#60ee60"/>
+                                    <TextBlock Text=" / " FontSize="24" Foreground="#555"/>
+                                    <TextBlock Text="{Binding EndNotesTotal}" FontSize="24" Foreground="#888"/>
+                                </StackPanel>
+                                <TextBlock Text="NOTES HIT" FontSize="10" Foreground="#666"
+                                           FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Max combo -->
+                            <StackPanel Grid.Row="1" Grid.Column="1" HorizontalAlignment="Center" Margin="0,0,0,12">
+                                <TextBlock Text="{Binding EndMaxCombo}"
+                                           FontSize="24" FontWeight="Bold" Foreground="#ffa726"
+                                           HorizontalAlignment="Center"/>
+                                <TextBlock Text="MAX COMBO" FontSize="10" Foreground="#666"
+                                           FontWeight="Bold" HorizontalAlignment="Center"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- Action buttons -->
+                        <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                            <Button Content="▶  Play Again" Style="{StaticResource StartButton}"
+                                    Command="{Binding PlayAgainCommand}" Padding="20,8" FontSize="13"/>
+                            <Button Content="✕  Dismiss" Style="{StaticResource FlatButton}"
+                                    Command="{Binding DismissCommand}" Padding="20,8" FontSize="13"
+                                    Margin="12,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </Grid>
 
         <!-- ── Piano keyboard ── -->
         <root:PianoKeyboard x:Name="TrainingKeyboard" Grid.Row="4"

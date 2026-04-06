@@ -38,6 +38,7 @@ namespace PianoTrainer2.ViewModels
             _highway.NoteHit            += _ => { Score += 10; Combo++; };
             _highway.NoteMissed         += _ => { Combo = 0; };
             _highway.PendingKeysChanged += keys => PendingKeys = keys;
+            _highway.SongCompleted      += OnSongCompleted;
             _highway.Mode          = SelectedMode;
             _highway.TrackDuration = TrackDuration;
 
@@ -109,7 +110,41 @@ namespace PianoTrainer2.ViewModels
         public int Score { get => _score; set { _score = value; OnPropertyChanged(); } }
 
         private int _combo;
-        public int Combo { get => _combo; set { _combo = value; OnPropertyChanged(); } }
+        public int Combo
+        {
+            get => _combo;
+            set
+            {
+                _combo = value;
+                OnPropertyChanged();
+                if (value > MaxCombo) MaxCombo = value;
+            }
+        }
+
+        private int _maxCombo;
+        public int MaxCombo { get => _maxCombo; set { _maxCombo = value; OnPropertyChanged(); } }
+
+        // ── End-of-song stats ─────────────────────────────────────────────
+        private bool _showEndScreen;
+        public bool ShowEndScreen { get => _showEndScreen; set { _showEndScreen = value; OnPropertyChanged(); } }
+
+        private string _endSongTitle = "";
+        public string EndSongTitle { get => _endSongTitle; set { _endSongTitle = value; OnPropertyChanged(); } }
+
+        private int _endNotesHit;
+        public int EndNotesHit { get => _endNotesHit; set { _endNotesHit = value; OnPropertyChanged(); } }
+
+        private int _endNotesTotal;
+        public int EndNotesTotal { get => _endNotesTotal; set { _endNotesTotal = value; OnPropertyChanged(); } }
+
+        private int _endAccuracy;
+        public int EndAccuracy { get => _endAccuracy; set { _endAccuracy = value; OnPropertyChanged(); } }
+
+        private int _endScore;
+        public int EndScore { get => _endScore; set { _endScore = value; OnPropertyChanged(); } }
+
+        private int _endMaxCombo;
+        public int EndMaxCombo { get => _endMaxCombo; set { _endMaxCombo = value; OnPropertyChanged(); } }
 
         // ── Status / progress ─────────────────────────────────────────────
         private string _status = "Select a song and press Start.";
@@ -145,13 +180,17 @@ namespace PianoTrainer2.ViewModels
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }
         public ICommand AutoPlayCommand { get; }
+        public ICommand PlayAgainCommand { get; }
+        public ICommand DismissCommand { get; }
 
         public TrainingViewModel()
         {
-            BrowseCommand = new RelayCommand(Browse);
-            StartCommand = new RelayCommand(async () => await StartAsync(autoPlay: false), () => !IsPlaying && !IsDownloading);
-            StopCommand = new RelayCommand(StopPlayback, () => IsPlaying);
-            AutoPlayCommand = new RelayCommand(async () => await StartAsync(autoPlay: true), () => !IsPlaying && !IsDownloading);
+            BrowseCommand   = new RelayCommand(Browse);
+            StartCommand    = new RelayCommand(async () => await StartAsync(autoPlay: false), () => !IsPlaying && !IsDownloading);
+            StopCommand     = new RelayCommand(StopPlayback, () => IsPlaying);
+            AutoPlayCommand = new RelayCommand(async () => await StartAsync(autoPlay: true),  () => !IsPlaying && !IsDownloading);
+            PlayAgainCommand = new RelayCommand(async () => { ShowEndScreen = false; await StartAsync(_lastAutoPlay); }, () => !IsPlaying && !IsDownloading);
+            DismissCommand   = new RelayCommand(() => ShowEndScreen = false, () => !IsPlaying);
         }
 
         private void Browse()
@@ -168,7 +207,9 @@ namespace PianoTrainer2.ViewModels
         private async Task StartAsync(bool autoPlay)
         {
             if (_highway == null) return;
-            Score = 0; Combo = 0;
+            Score = 0; Combo = 0; MaxCombo = 0;
+            ShowEndScreen = false;
+            _lastAutoPlay = autoPlay;
             _highway.AutoPlay = autoPlay;
             IsAutoPlaying = autoPlay;
 
@@ -229,6 +270,24 @@ namespace PianoTrainer2.ViewModels
             {
                 Status = $"Error: {ex.Message}";
             }
+        }
+
+        private bool _lastAutoPlay;
+
+        private void OnSongCompleted(int notesHit, int notesTotal)
+        {
+            IsPlaying = false;
+            IsAutoPlaying = false;
+            if (_highway != null) _highway.AutoPlay = false;
+
+            EndSongTitle  = CurrentSongLabel;
+            EndNotesHit   = notesHit;
+            EndNotesTotal = notesTotal;
+            EndAccuracy   = notesTotal > 0 ? (int)Math.Round(notesHit * 100.0 / notesTotal) : 0;
+            EndScore      = Score;
+            EndMaxCombo   = MaxCombo;
+            ShowEndScreen = true;
+            Status        = "Song complete!";
         }
 
         private void StopPlayback()

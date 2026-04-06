@@ -49,6 +49,7 @@ namespace PianoTrainer2.Controls
         public event Action<bool[]>?    PendingKeysChanged;
         public event Action<int, int>?  AutoPlayNoteOn;   // noteNumber, velocity
         public event Action<int>?       AutoPlayNoteOff;  // noteNumber
+        public event Action<int, int>?  SongCompleted;    // notesHit, notesTotal
 
         // ── private state ─────────────────────────────────────────────────────
         private Song?                   _song;
@@ -64,6 +65,8 @@ namespace PianoTrainer2.Controls
         private readonly List<Line>     _rails = new();
         private bool[]                  _lastPending = new bool[128];
         private readonly Dictionary<int, double> _autoPlayPendingOff = new();
+        private int                     _notesHit;
+        private int                     _notesTotal;
 
         public NoteHighwayControl()
         {
@@ -118,6 +121,8 @@ namespace PianoTrainer2.Controls
             _playbackMs    = -(FallSeconds * 1000.0);
             _clockOffsetMs = _playbackMs;
             _frozen        = false;
+            _notesHit      = 0;
+            _notesTotal    = _song.Notes.Count(n => PianoKeyboardLayout.IsInRange(n.NoteNumber));
             _clock.Restart();
             _timer.Start();
         }
@@ -156,6 +161,7 @@ namespace PianoTrainer2.Controls
                 }
                 _frozen = _falling.Any(f => f.State == HitState.Frozen);
                 if (!_frozen) { _clockOffsetMs = _playbackMs; _clock.Restart(); }
+                _notesHit += frozenList.Count;
                 NoteHit?.Invoke(noteNumber);
                 return;
             }
@@ -186,7 +192,10 @@ namespace PianoTrainer2.Controls
                 double held  = _playbackMs - fn.KeyDownAt;
                 // Skip hold check unless TrackDuration is enabled
                 if (!TrackDuration || fn.Source.DurationMs < 300 || Mode == TrainingMode.WaitForPress || held >= fn.Source.DurationMs * 0.7)
+                {
+                    _notesHit++;
                     NoteHit?.Invoke(noteNumber);
+                }
                 else
                 {
                     fn.State = HitState.Miss;
@@ -211,7 +220,11 @@ namespace PianoTrainer2.Controls
             UpdatePendingKeys();
 
             if (!_frozen && _playbackMs > _song.TotalDurationMs + 3000 && _falling.Count == 0)
+            {
+                int hit = _notesHit, total = _notesTotal;
                 Stop();
+                SongCompleted?.Invoke(hit, total);
+            }
         }
 
         // ── rails ─────────────────────────────────────────────────────────────
@@ -313,6 +326,7 @@ namespace PianoTrainer2.Controls
                     // Auto-play: hit the note automatically and send MIDI output
                     fn.State = HitState.Hit;
                     FlashNote(fn, true);
+                    _notesHit++;
                     NoteHit?.Invoke(fn.Source.NoteNumber);
                     AutoPlayNoteOn?.Invoke(fn.Source.NoteNumber, 80);
                     // Schedule NoteOff after the note's duration
