@@ -30,6 +30,7 @@ namespace PianoTrainer2.Controls
         // ── tunables ──────────────────────────────────────────────────────────
         public TrainingMode Mode           { get; set; } = TrainingMode.Continuous;
         public bool         TrackDuration  { get; set; } = false;
+        public bool         AutoPlay       { get; set; } = false;
         public double       FallSeconds    { get; set; } = 5.0;
         private double _pixelsPerMs = 0.3;
         private const int    TickMs        = 16;
@@ -46,6 +47,8 @@ namespace PianoTrainer2.Controls
         public event Action<int>?       NoteHit;
         public event Action<int>?       NoteMissed;
         public event Action<bool[]>?    PendingKeysChanged;
+        public event Action<int, int>?  AutoPlayNoteOn;   // noteNumber, velocity
+        public event Action<int>?       AutoPlayNoteOff;  // noteNumber
 
         // ── private state ─────────────────────────────────────────────────────
         private Song?                   _song;
@@ -60,6 +63,7 @@ namespace PianoTrainer2.Controls
         private Rectangle?              _hitZone;
         private readonly List<Line>     _rails = new();
         private bool[]                  _lastPending = new bool[128];
+        private readonly Dictionary<int, double> _autoPlayPendingOff = new();
 
         public NoteHighwayControl()
         {
@@ -122,6 +126,12 @@ namespace PianoTrainer2.Controls
         {
             _timer.Stop();
             _clock.Stop();
+
+            // Send NoteOff for all pending auto-play notes (prevent stuck notes)
+            foreach (var noteNumber in _autoPlayPendingOff.Keys.ToList())
+                AutoPlayNoteOff?.Invoke(noteNumber);
+            _autoPlayPendingOff.Clear();
+
             HighwayCanvas.Children.Clear();
             _falling.Clear();
             _rails.Clear();
@@ -196,6 +206,7 @@ namespace PianoTrainer2.Controls
             SpawnNotes();
             PositionNotes();
             CheckHitZone();
+            ProcessAutoPlayNoteOffs();
             RemoveExpired();
             UpdatePendingKeys();
 
@@ -297,7 +308,18 @@ namespace PianoTrainer2.Controls
                 double bottom = top + fn.Visual.Height;
                 if (bottom < hitY) continue;
 
-                if (Mode == TrainingMode.WaitForPress)
+                if (AutoPlay)
+                {
+                    // Auto-play: hit the note automatically and send MIDI output
+                    fn.State = HitState.Hit;
+                    FlashNote(fn, true);
+                    NoteHit?.Invoke(fn.Source.NoteNumber);
+                    AutoPlayNoteOn?.Invoke(fn.Source.NoteNumber, 80);
+                    // Schedule NoteOff after the note's duration
+                    double offTime = _playbackMs + Math.Max(fn.Source.DurationMs, 50);
+                    _autoPlayPendingOff[fn.Source.NoteNumber] = offTime;
+                }
+                else if (Mode == TrainingMode.WaitForPress)
                 {
                     fn.State       = HitState.Frozen;
                     _clockOffsetMs = _playbackMs;
@@ -315,7 +337,7 @@ namespace PianoTrainer2.Controls
                 }
             }
 
-            if (Mode == TrainingMode.WaitForPress && _frozen)
+            if (!AutoPlay && Mode == TrainingMode.WaitForPress && _frozen)
             {
                 foreach (var fn in _falling.Where(f => f.State == HitState.Frozen).ToList())
                 {
@@ -328,6 +350,18 @@ namespace PianoTrainer2.Controls
                 }
                 _frozen = _falling.Any(f => f.State == HitState.Frozen);
                 if (!_frozen) { _clockOffsetMs = _playbackMs; _clock.Restart(); }
+            }
+        }
+
+        // ── auto-play NoteOff scheduling ──────────────────────────────────────
+        private void ProcessAutoPlayNoteOffs()
+        {
+            if (_autoPlayPendingOff.Count == 0) return;
+            var expired = _autoPlayPendingOff.Where(kv => _playbackMs >= kv.Value).Select(kv => kv.Key).ToList();
+            foreach (var noteNumber in expired)
+            {
+                _autoPlayPendingOff.Remove(noteNumber);
+                AutoPlayNoteOff?.Invoke(noteNumber);
             }
         }
 

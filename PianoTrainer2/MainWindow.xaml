@@ -100,11 +100,20 @@
                 <Border Grid.Row="0" Background="#181818" BorderBrush="#2a2a2a"
                         BorderThickness="0,0,0,1" Padding="12,8">
                     <StackPanel Orientation="Horizontal">
-                        <TextBlock Text="MIDI DEVICE" VerticalAlignment="Center" Margin="0,0,10,0"
+                        <TextBlock Text="MIDI INPUT" VerticalAlignment="Center" Margin="0,0,10,0"
                                    FontSize="10" Foreground="#666" FontWeight="Bold"/>
                         <ComboBox Width="300" Style="{StaticResource DarkCombo}"
                                   ItemsSource="{Binding Devices}"
                                   SelectedIndex="{Binding SelectedDevice, Mode=TwoWay}"/>
+
+                        <Rectangle Width="1" Fill="#2a2a2a" Margin="16,2"/>
+
+                        <TextBlock Text="MIDI OUTPUT" VerticalAlignment="Center" Margin="0,0,10,0"
+                                   FontSize="10" Foreground="#666" FontWeight="Bold"/>
+                        <ComboBox Width="300" Style="{StaticResource DarkCombo}"
+                                  ItemsSource="{Binding OutputDevices}"
+                                  SelectedIndex="{Binding SelectedOutputDevice, Mode=TwoWay}"/>
+
                         <TextBlock Text="{Binding Status}" VerticalAlignment="Center"
                                    Margin="16,0,0,0" Foreground="#555" FontSize="11"/>
                     </StackPanel>

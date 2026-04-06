@@ -66,6 +66,18 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Auto Play button -->
+        <Style x:Key="AutoPlayButton" TargetType="Button" BasedOn="{StaticResource FlatButton}">
+            <Setter Property="Background" Value="#1a1a3a"/>
+            <Setter Property="BorderBrush" Value="#2a2a5a"/>
+            <Setter Property="Foreground" Value="#8080ee"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2a2a4a"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
     </UserControl.Resources>
 
     <Grid>
@@ -130,9 +142,11 @@
 
                 <Rectangle Width="1" Fill="#2a2a2a" Margin="12,2"/>
 
-                <!-- Play / Stop -->
+                <!-- Play / Stop / Auto Play -->
                 <Button Content="▶  Start" Style="{StaticResource StartButton}"
                         Command="{Binding StartCommand}" VerticalAlignment="Center"/>
+                <Button Content="▶  Auto Play" Style="{StaticResource AutoPlayButton}"
+                        Command="{Binding AutoPlayCommand}" VerticalAlignment="Center" Margin="6,0,0,0"/>
                 <Button Content="■  Stop" Style="{StaticResource StopButton}"
                         Command="{Binding StopCommand}" VerticalAlignment="Center" Margin="6,0,0,0"/>
 

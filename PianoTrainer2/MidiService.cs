@@ -13,10 +13,12 @@ namespace PianoTrainer2
     public class MidiService : IDisposable
     {
         private MidiIn? _midiIn;
+        private MidiOut? _midiOut;
 
         public event EventHandler<NoteEventArgs>? NoteOn;
         public event EventHandler<NoteEventArgs>? NoteOff;
 
+        // ── Input devices ─────────────────────────────────────────────────
         public static string[] DeviceNames()
         {
             var names = new string[MidiIn.NumberOfDevices];
@@ -48,10 +50,48 @@ namespace PianoTrainer2
             }
         }
 
+        // ── Output devices ────────────────────────────────────────────────
+        public static string[] OutputDeviceNames()
+        {
+            var names = new string[MidiOut.NumberOfDevices];
+            for (int i = 0; i < MidiOut.NumberOfDevices; i++)
+                names[i] = MidiOut.DeviceInfo(i).ProductName;
+            return names;
+        }
+
+        public void OpenOutput(int deviceIndex)
+        {
+            CloseOutput();
+            _midiOut = new MidiOut(deviceIndex);
+        }
+
+        public void SendNoteOn(int noteNumber, int velocity)
+        {
+            if (_midiOut == null) return;
+            var evt = new NoteOnEvent(0, 1, noteNumber, velocity, 0);
+            _midiOut.Send(evt.GetAsShortMessage());
+        }
+
+        public void SendNoteOff(int noteNumber)
+        {
+            if (_midiOut == null) return;
+            var evt = new NoteOnEvent(0, 1, noteNumber, 0, 0);
+            _midiOut.Send(evt.GetAsShortMessage());
+        }
+
+        public void CloseOutput()
+        {
+            _midiOut?.Dispose();
+            _midiOut = null;
+        }
+
+        public bool HasOutputDevice => _midiOut != null;
+
         public void Dispose()
         {
             _midiIn?.Stop();
             _midiIn?.Dispose();
+            CloseOutput();
         }
     }
 }

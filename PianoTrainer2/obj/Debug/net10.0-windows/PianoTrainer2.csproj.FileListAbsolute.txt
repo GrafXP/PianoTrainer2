@@ -67,3 +67,4 @@ I:\Data\Programming\windsurf\PianoTrainer2\PianoTrainer2\obj\Debug\net10.0-windo
 I:\Data\Programming\windsurf\PianoTrainer2\PianoTrainer2\obj\Debug\net10.0-windows\Views\TrainingView.g.cs
 I:\Data\Programming\windsurf\PianoTrainer2\PianoTrainer2\obj\Debug\net10.0-windows\Views\TrainingView.baml
 I:\Data\Programming\windsurf\PianoTrainer2\PianoTrainer2\obj\Debug\net10.0-windows\PianoTrainer2.sourcelink.json
+I:\Data\Programming\windsurf\PianoTrainer2\PianoTrainer2\obj\Debug\net10.0-windows\App.baml

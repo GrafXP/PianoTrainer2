@@ -7,6 +7,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
 
 namespace PianoTrainer2.ViewModels
@@ -39,7 +40,27 @@ namespace PianoTrainer2.ViewModels
             _highway.PendingKeysChanged += keys => PendingKeys = keys;
             _highway.Mode          = SelectedMode;
             _highway.TrackDuration = TrackDuration;
+
+            // Auto-play MIDI output wiring
+            _highway.AutoPlayNoteOn += (note, velocity) =>
+            {
+                SendNoteOn?.Invoke(note, velocity);
+                var keys = (bool[])ActiveKeys.Clone();
+                keys[note] = true;
+                ActiveKeys = keys;
+            };
+            _highway.AutoPlayNoteOff += note =>
+            {
+                SendNoteOff?.Invoke(note);
+                var keys = (bool[])ActiveKeys.Clone();
+                keys[note] = false;
+                ActiveKeys = keys;
+            };
         }
+
+        // ── MIDI output callbacks (set by MainViewModel) ────────────────
+        public Action<int, int>? SendNoteOn { get; set; }
+        public Action<int>? SendNoteOff { get; set; }
 
         // ── Built-in song list ────────────────────────────────────────────
         public IReadOnlyList<BuiltInSong> BuiltInSongs => SongLibrary.Songs;
@@ -103,6 +124,9 @@ namespace PianoTrainer2.ViewModels
         private bool _isPlaying;
         public bool IsPlaying { get => _isPlaying; set { _isPlaying = value; OnPropertyChanged(); } }
 
+        private bool _isAutoPlaying;
+        public bool IsAutoPlaying { get => _isAutoPlaying; set { _isAutoPlaying = value; OnPropertyChanged(); } }
+
         // ── Custom file path ──────────────────────────────────────────────
         private string? _customMidiPath;
         public string? CustomMidiPath
@@ -120,12 +144,14 @@ namespace PianoTrainer2.ViewModels
         public ICommand BrowseCommand { get; }
         public ICommand StartCommand { get; }
         public ICommand StopCommand { get; }
+        public ICommand AutoPlayCommand { get; }
 
         public TrainingViewModel()
         {
             BrowseCommand = new RelayCommand(Browse);
-            StartCommand = new RelayCommand(async () => await StartAsync(), () => !IsPlaying && !IsDownloading);
+            StartCommand = new RelayCommand(async () => await StartAsync(autoPlay: false), () => !IsPlaying && !IsDownloading);
             StopCommand = new RelayCommand(StopPlayback, () => IsPlaying);
+            AutoPlayCommand = new RelayCommand(async () => await StartAsync(autoPlay: true), () => !IsPlaying && !IsDownloading);
         }
 
         private void Browse()
@@ -139,17 +165,19 @@ namespace PianoTrainer2.ViewModels
             }
         }
 
-        private async Task StartAsync()
+        private async Task StartAsync(bool autoPlay)
         {
             if (_highway == null) return;
             Score = 0; Combo = 0;
+            _highway.AutoPlay = autoPlay;
+            IsAutoPlaying = autoPlay;
 
             // Embedded songs need no download or parsing
             if (SelectedBuiltIn?.EmbeddedSong != null)
             {
                 var embedded = SelectedBuiltIn.EmbeddedSong;
-                Status = $"Playing: {embedded.Title}  ({embedded.Notes.Count} notes)";
-                _highway.Mode = SelectedMode;
+                Status = $"{(autoPlay ? "Auto-Playing" : "Playing")}: {embedded.Title}  ({embedded.Notes.Count} notes)";
+                _highway.Mode = autoPlay ? TrainingMode.Continuous : SelectedMode;
                 _highway.TrackDuration = TrackDuration;
                 _highway.LoadSong(embedded, Speed);
                 _highway.Start();
@@ -190,8 +218,8 @@ namespace PianoTrainer2.ViewModels
             {
                 Status = "Parsing MIDI...";
                 var song = await Task.Run(() => MidiSongParser.Parse(path, SelectedBuiltIn?.Title ?? ""));
-                Status = $"Playing: {song.Title}  ({song.Notes.Count} notes)";
-                _highway.Mode = SelectedMode;
+                Status = $"{(autoPlay ? "Auto-Playing" : "Playing")}: {song.Title}  ({song.Notes.Count} notes)";
+                _highway.Mode = autoPlay ? TrainingMode.Continuous : SelectedMode;
                 _highway.TrackDuration = TrackDuration;
                 _highway.LoadSong(song, Speed);
                 _highway.Start();
@@ -207,6 +235,8 @@ namespace PianoTrainer2.ViewModels
         {
             _highway?.Stop();
             IsPlaying = false;
+            IsAutoPlaying = false;
+            if (_highway != null) _highway.AutoPlay = false;
             Status = "Stopped.";
         }
 

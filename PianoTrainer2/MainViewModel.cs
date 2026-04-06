@@ -37,6 +37,7 @@ namespace PianoTrainer2
         private readonly System.Collections.Generic.Dictionary<int, NoteLogEntry> _active = new();
 
         public ObservableCollection<string> Devices { get; } = new();
+        public ObservableCollection<string> OutputDevices { get; } = new();
         public ObservableCollection<NoteLogEntry> EventLog { get; } = new();
         public bool[] ActiveKeys { get; private set; } = new bool[128];
         public TrainingViewModel TrainingVm { get; } = new();
@@ -46,6 +47,13 @@ namespace PianoTrainer2
         {
             get => _selectedDevice;
             set { _selectedDevice = value; OnPropertyChanged(); ConnectMidi(); }
+        }
+
+        private int _selectedOutputDevice = -1;
+        public int SelectedOutputDevice
+        {
+            get => _selectedOutputDevice;
+            set { _selectedOutputDevice = value; OnPropertyChanged(); ConnectMidiOutput(); }
         }
 
         private string _status = "Select MIDI device";
@@ -61,8 +69,20 @@ namespace PianoTrainer2
             else
                 SelectedDevice = 0;
 
+            foreach (var name in MidiService.OutputDeviceNames())
+                OutputDevices.Add(name);
+
+            if (OutputDevices.Count == 0)
+                OutputDevices.Add("(no output devices)");
+            else
+                SelectedOutputDevice = 0;
+
             _midi.NoteOn += (_, e) => Application.Current.Dispatcher.Invoke(() => HandleNoteOn(e));
             _midi.NoteOff += (_, e) => Application.Current.Dispatcher.Invoke(() => HandleNoteOff(e));
+
+            // Wire MIDI output callbacks to TrainingVm
+            TrainingVm.SendNoteOn = (note, vel) => _midi.SendNoteOn(note, vel);
+            TrainingVm.SendNoteOff = note => _midi.SendNoteOff(note);
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(100) };
             _refreshTimer.Tick += (_, _) => RefreshDurations();
@@ -74,6 +94,13 @@ namespace PianoTrainer2
             if (_selectedDevice < 0 || _selectedDevice >= MidiService.DeviceNames().Length) return;
             try { _midi.Open(_selectedDevice); Status = $"Connected: {Devices[_selectedDevice]}"; }
             catch (Exception ex) { Status = $"Error: {ex.Message}"; }
+        }
+
+        private void ConnectMidiOutput()
+        {
+            if (_selectedOutputDevice < 0 || _selectedOutputDevice >= MidiService.OutputDeviceNames().Length) return;
+            try { _midi.OpenOutput(_selectedOutputDevice); Status = $"Output: {OutputDevices[_selectedOutputDevice]}"; }
+            catch (Exception ex) { Status = $"Output error: {ex.Message}"; }
         }
 
         private void HandleNoteOn(NoteEventArgs e)
